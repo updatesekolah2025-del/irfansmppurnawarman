@@ -313,8 +313,6 @@
     const SHEET_ID  = "1WJB2DCVjj1UbZhJ61VGztRc2BB75vJWrwgEbmadybdI";
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwN_vC2zI8Y1nEc6PD7tWj83qplUdZEjuK8qYNF6C2oT5Z6gom6R6XAAJetPcRfrTMGPQ/exec"; 
 
-    // ... Sisa kode JavaScript sama persis seperti versi final sebelumnya ...
-    // ... Tidak ada perubahan lain selain SCRIPT_URL di atas ...
     document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('sheetShown').textContent = SHEET_ID;
       const t = document.getElementById('tanggal'); if(t) t.value = new Date().toISOString().slice(0,10);
@@ -383,7 +381,7 @@
         if(authorizedUsers.length === 0) return showLoginError("Tidak dapat terhubung ke server untuk verifikasi pengguna.");
       }
       const norm = x => (x||'').toString().trim();
-      const found = authorizedUsers.find(x => norm(x.username).toLowerCase()===u && norm(x.password)===p);
+      const found = authorizedUsers.find(x => norm(x.username).toLowerCase()===u && norm(x.password)==p);
       if(!found) return showLoginError('Username atau password salah.');
       currentUser = {username:found.username, nama:found.nama, role:found.role, hariPiket:found.hariPiket||''};
       localStorage.setItem('currentUser', JSON.stringify(currentUser));
