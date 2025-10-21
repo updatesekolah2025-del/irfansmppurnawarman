@@ -347,7 +347,7 @@
       } catch(e) { console.error(e); return {success:false, error:e.message}; }
     }
 
-    // ===================== LOGIN =====================
+    // ===================== LOGIN & STATE MANAGEMENT =====================
     function setupLoginForm(){
       document.getElementById('loginForm').addEventListener('submit', (e)=>{ e.preventDefault(); handleLogin(); });
     }
@@ -377,7 +377,9 @@
       if(saved) { currentUser = JSON.parse(saved); showMainApp(); }
     }
     function logout(){
-      localStorage.removeItem('currentUser'); currentUser=null;
+      localStorage.removeItem('currentUser'); 
+      sessionStorage.clear(); // [BARU] Hapus semua data sesi saat logout
+      currentUser=null;
       document.getElementById('mainApp').classList.add('hidden');
       document.getElementById('loginScreen').classList.remove('hidden');
       toast('Anda telah keluar.');
@@ -440,7 +442,7 @@
         if(r && (r.success || Array.isArray(r.data))) {
           el.className = "bg-emerald-100 text-emerald-900 pill px-3 py-1";
           el.innerHTML = "✅ Terhubung";
-        } else throw new Error('Tidak ada respons');
+        } else throw new Error('Tidak ada respons dari server');
       } catch(e) {
         el.className = "bg-red-100 text-red-900 pill px-3 py-1";
         el.innerHTML = "❌ Gagal terhubung: " + e.message;
@@ -474,6 +476,7 @@
 
     // ===================== DASHBOARD =====================
     function loadDashboard(){
+      // ... (Fungsi ini sama persis dengan versi sebelumnya, tidak perlu diubah)
       const today = new Date().toISOString().slice(0,10);
       const td = allAbsensiData.filter(x=>x.tanggal===today);
       const sum = (jen,st) => td.filter(x=> x.jenisAbsensi===jen && x.status===st).length;
@@ -519,12 +522,25 @@
     }
 
     // ===================== ABSENSI =====================
+    // [BARU] Fungsi helper untuk session storage
+    const getSessionKey = () => {
+        const tanggal = document.getElementById('tanggal').value;
+        const jenis = document.getElementById('jenisAbsensi').value;
+        const kelas = document.getElementById('kelas').value;
+        return `absensi_${tanggal}_${jenis}_${kelas}`;
+    };
+    const saveStateToSession = () => sessionStorage.setItem(getSessionKey(), JSON.stringify(currentAbsensiData));
+    const loadStateFromSession = () => JSON.parse(sessionStorage.getItem(getSessionKey()));
+    const clearStateFromSession = () => sessionStorage.removeItem(getSessionKey());
+
     function toggleKelasField(){ document.getElementById('kelas').disabled = !(document.getElementById('jenisAbsensi').value==='siswa'); }
+    
     async function loadAbsensiData(){
       const tanggal = document.getElementById('tanggal').value;
       const jenis = document.getElementById('jenisAbsensi').value;
       const kelas = document.getElementById('kelas').value;
       if(!tanggal || !jenis || (jenis==='siswa' && !kelas)) return toast('Lengkapi tanggal, jenis, dan kelas.','error');
+      
       let list = [];
       if(jenis==='siswa'){
         if(allStudents.length===0) await loadStudentsFromSheets();
@@ -533,8 +549,18 @@
         if(allTeachers.length===0) await loadTeachersFromSheets();
         list = allTeachers.map(g=>({nama:g.nama, identifier:g.nip||g.nama}));
       }
-      if(list.length===0){ toast('Data untuk pilihan ini kosong. Cek kolom "kelas" di sheet SISWA.','error'); return;}
-      currentAbsensiData = list.map(x => ({ tanggal, kelas:(jenis==='siswa'?kelas:''), jenisAbsensi: jenis, nama:x.nama, identifier:x.identifier, status:'Hadir', savedBy: currentUser.username }));
+      
+      if(list.length===0){ toast('Data untuk pilihan ini kosong. Cek kolom "kelas" di sheet SISWA.','error'); return; }
+      
+      // [DIUBAH] Cek data dari sesi, jika tidak ada, buat data baru
+      const savedState = loadStateFromSession();
+      if (savedState && savedState.length === list.length) {
+          currentAbsensiData = savedState;
+          toast('Memuat data yang belum tersimpan dari sesi Anda.');
+      } else {
+          currentAbsensiData = list.map(x => ({ tanggal, kelas:(jenis==='siswa'?kelas:''), jenisAbsensi: jenis, nama:x.nama, identifier:x.identifier, status:'Hadir', savedBy: currentUser.username }));
+      }
+      
       document.getElementById('btnSemuaHadir').classList.remove('hidden');
       document.getElementById('saveAbsensiBtn').classList.remove('hidden');
       document.getElementById('daftarAbsensi').classList.remove('hidden');
@@ -544,16 +570,22 @@
         <div class="flex items-center justify-between border rounded-lg p-2">
           <div class="text-sm"><div class="font-medium">${row.nama}</div><div class="text-gray-500">${row.identifier||'-'}</div></div>
           <select class="px-2 py-1 border rounded" data-idx="${i}" onchange="onChangeStatus(event)">
-            ${['Hadir','Sakit','Izin','Alpha','Bolos'].map(s=>`<option ${s==='Hadir'?'selected':''}>${s}</option>`).join('')}
+            ${['Hadir','Sakit','Izin','Alpha','Bolos'].map(s=>`<option ${s === row.status ? 'selected' : ''}>${s}</option>`).join('')}
           </select>
         </div>`).join('');
       checkAbsensiPermission();
     }
-    function onChangeStatus(e){ const i = +e.target.dataset.idx; currentAbsensiData[i].status = e.target.value; }
+    
+    function onChangeStatus(e){ 
+        const i = +e.target.dataset.idx; 
+        currentAbsensiData[i].status = e.target.value; 
+        saveStateToSession(); // [BARU] Simpan setiap perubahan ke sesi
+    }
     
     async function markAllHadir() {
       currentAbsensiData.forEach(r => r.status = 'Hadir');
       document.querySelectorAll('#absensiList select').forEach(sel => sel.value = 'Hadir');
+      saveStateToSession(); // [BARU] Simpan perubahan ke sesi
       toast('Semua ditandai Hadir, menyimpan...');
       await saveAbsensi();
     }
@@ -575,7 +607,8 @@
       saveBtn.innerHTML = '<span class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full spin"></span>&nbsp;Menyimpan...';
       const payload = { sheetId: SHEET_ID, items: currentAbsensiData };
       const r = await apiPost('saveAbsensi', payload);
-      if(r && r.success){ 
+      if(r && r.success){
+        clearStateFromSession(); // [BARU] Hapus data dari sesi setelah berhasil
         toast('Absensi berhasil tersimpan.'); 
         await pullAbsensiForToday(); 
         loadDashboard(); 
@@ -596,6 +629,7 @@
       else toast('Gagal menarik data.','error');
     }
     function generateLaporan(){
+      // ... (Fungsi ini sama persis dengan versi sebelumnya, tidak perlu diubah)
       const map = new Map();
       allAbsensiData.filter(x=>x.jenisAbsensi==='siswa').forEach(row=>{
         const key = row.identifier+"|"+row.nama;
