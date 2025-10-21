@@ -312,7 +312,7 @@
     // ===================== KONFIG =====================
     // PENTING: Ganti kedua nilai di bawah ini dengan milik Anda
     const SHEET_ID  = "1WJB2DCVjj1UbZhJ61VGztRc2BB75vJWrwgEbmadybdI";
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw91mEWyOzMqlCmP0_UkNAWKu6Z3DbUqTuEmU9yDi3GUBp9zKgvCbkNHvXA_oXjT2bt/exec"; 
+    const SCRIPT_URL = "URL_SCRIPT_ANDA_YANG_BARU_HASIL_DEPLOY"; 
 
     document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('sheetShown').textContent = SHEET_ID;
@@ -377,7 +377,7 @@
       const p = document.getElementById('password').value.trim();
       if(!u||!p) return showLoginError('Username dan password harus diisi.');
       if(authorizedUsers.length===0) {
-        toast("Daftar pengguna kosong. Menunggu koneksi...", "error");
+        toast("Daftar pengguna kosong. Mencoba menghubungkan kembali...", "error");
         await loadAuthorizedUsers();
         if(authorizedUsers.length === 0) return showLoginError("Tidak dapat terhubung ke server untuk verifikasi pengguna.");
       }
@@ -453,13 +453,16 @@
     async function testGoogleSheetsConnection(){
       const el = document.getElementById('connectionStatus');
       try {
-        let r = await apiGet({action:'test'});
-        if(!r || r.success===false) r = await apiGet({action:'getUsers', sheetId: SHEET_ID});
-        if(r && r.success) {
+        // Tes yang lebih komprehensif: coba ambil data pengguna dan data absensi
+        const rUsers = await apiGet({action:'getUsers', sheetId: SHEET_ID});
+        const today = new Date().toISOString().slice(0,10);
+        const rAbsen = await apiGet({action:'getAbsensiRange', sheetId: SHEET_ID, start: today, end: today});
+
+        if(rUsers && rUsers.success && rAbsen && rAbsen.success) {
           el.className = "bg-emerald-100 text-emerald-900 pill px-3 py-1";
           el.innerHTML = "✅ Terhubung";
         } else {
-          throw new Error(r.error || 'Respons server tidak valid');
+          throw new Error(rUsers.error || rAbsen.error || 'Respons server tidak valid');
         }
       } catch(e) {
         el.className = "bg-red-100 text-red-900 pill px-3 py-1";
