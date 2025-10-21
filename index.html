@@ -310,8 +310,9 @@
 
   <script>
     // ===================== KONFIG =====================
+    // PENTING: Ganti kedua nilai di bawah ini dengan milik Anda
     const SHEET_ID  = "1WJB2DCVjj1UbZhJ61VGztRc2BB75vJWrwgEbmadybdI";
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzDMKkx-CNf9ei28yUhCjn4qjpFncX-e6KT9FMta0OoBsKD6FlOE59txFkOaFxESlpt6A/exec";
+    const SCRIPT_URL = "URL_SCRIPT_ANDA_YANG_BARU_HASIL_DEPLOY"; 
 
     document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('sheetShown').textContent = SHEET_ID;
@@ -549,7 +550,13 @@
       checkAbsensiPermission();
     }
     function onChangeStatus(e){ const i = +e.target.dataset.idx; currentAbsensiData[i].status = e.target.value; }
-    function markAllHadir(){ currentAbsensiData.forEach(r=> r.status='Hadir'); document.querySelectorAll('#absensiList select').forEach(sel=> sel.value='Hadir'); }
+    
+    async function markAllHadir() {
+      currentAbsensiData.forEach(r => r.status = 'Hadir');
+      document.querySelectorAll('#absensiList select').forEach(sel => sel.value = 'Hadir');
+      toast('Semua ditandai Hadir, menyimpan...');
+      await saveAbsensi();
+    }
 
     function checkAbsensiPermission(){
       const btn = document.getElementById('saveAbsensiBtn');
@@ -633,7 +640,7 @@
       const roleLabel = (r)=> r==='admin'? '👑 Admin' : r==='piket'? '🔐 Piket' : '👨‍🏫 Guru';
       tbody.innerHTML = (authorizedUsers||[]).map(u=>{
         const act = (currentUser && currentUser.role==='admin') ? `<div class='flex gap-1 justify-center'>
-            <button class='px-2 py-1 rounded text-xs btn btn-primary' onclick="editPassword('${u.username}', '${u.nama}')">🔑 Edit</button>
+            <button class='px-2 py-1 rounded text-xs btn-primary' onclick="editPassword('${u.username}', '${u.nama}')">🔑 Edit</button>
             ${currentUser.username!==u.username? `<button class='px-2 py-1 rounded text-xs bg-red-600 text-white' onclick="deletePetugas('${u.username}')">🗑️ Hapus</button>`:''}
           </div>` : '<span class="text-gray-400 text-xs">-</span>';
         return `<tr>
