@@ -22,7 +22,6 @@
 </head>
 <body class="min-h-screen">
 
-  <!-- HEADER -->
   <header class="brand-header">
     <div class="max-w-7xl mx-auto px-4 flex items-center justify-between">
       <div class="flex items-center gap-4">
@@ -40,7 +39,6 @@
     <div class="gold-bar"></div>
   </header>
 
-  <!-- LOGIN -->
   <section id="loginScreen" class="max-w-md mx-auto -mt-12 px-4">
     <div class="card p-6">
       <h2 class="text-lg font-bold text-center mb-2 text-[var(--primary)]">Masuk</h2>
@@ -66,9 +64,7 @@
     </div>
   </section>
 
-  <!-- APP -->
   <main id="mainApp" class="hidden max-w-7xl mx-auto px-4 py-6">
-    <!-- top bar -->
     <div class="flex flex-wrap gap-2 items-center text-sm mb-4">
       <span id="currentDateTime" class="bg-white/70 pill px-3 py-1 ring-1 ring-black/5"></span>
       <span id="connectionStatus" class="bg-yellow-100 text-yellow-900 pill px-3 py-1 inline-flex items-center gap-2">
@@ -77,7 +73,6 @@
       <span class="ml-auto"><button onclick="logout()" class="btn btn-accent">Keluar</button></span>
     </div>
 
-    <!-- tabs -->
     <div class="card overflow-hidden">
       <div class="flex border-b bg-white/60 text-sm font-medium">
         <button id="tab-dashboard" class="flex-1 py-3 tab-active" onclick="showTab('dashboard')">📊 Dashboard</button>
@@ -87,7 +82,6 @@
         <button id="tab-petugas"   class="flex-1 py-3" onclick="showTab('petugas')">🔐 Petugas</button>
       </div>
 
-      <!-- DASHBOARD -->
       <section id="content-dashboard" class="p-6">
         <div class="grid md:grid-cols-2 gap-6">
           <div class="card p-5 ring-1 ring-black/5">
@@ -150,7 +144,6 @@
         </div>
       </section>
 
-      <!-- ABSENSI -->
       <section id="content-absensi" class="hidden p-6">
         <h3 class="font-bold text-[var(--primary)] mb-3">Input Absensi</h3>
         <div class="grid md:grid-cols-3 gap-3 mb-3">
@@ -189,7 +182,6 @@
         </div>
       </section>
 
-      <!-- LAPORAN -->
       <section id="content-laporan" class="hidden p-6">
         <h3 class="font-bold text-[var(--primary)] mb-3">Laporan Absensi</h3>
         <div class="grid md:grid-cols-3 gap-3 mb-3">
@@ -225,7 +217,6 @@
         </div>
       </section>
 
-      <!-- DATA -->
       <section id="content-data" class="hidden p-6">
         <div class="grid md:grid-cols-2 gap-6">
           <div class="card p-4 ring-1 ring-black/5">
@@ -243,7 +234,6 @@
         </div>
       </section>
 
-      <!-- PETUGAS -->
       <section id="content-petugas" class="hidden p-6">
         <div class="flex items-center justify-between mb-3">
           <h3 class="font-bold text-[var(--primary)]">Manajemen Petugas / Guru</h3>
@@ -287,7 +277,6 @@
           </div>
         </div>
 
-        <!-- Modal Edit Password -->
         <div id="editPasswordModal" class="fixed inset-0 bg-black/50 items-center justify-center z-50 hidden">
           <div class="bg-white rounded-xl p-6 w-full max-w-md mx-4">
             <h3 class="font-bold mb-3">Edit Password</h3>
@@ -315,7 +304,6 @@
     </div>
   </main>
 
-  <!-- toast -->
   <div id="notification" class="fixed top-5 right-5 z-50 hidden">
     <div id="notificationContent" class="px-4 py-2 rounded-lg text-white bg-emerald-600 shadow-lg max-w-sm"><span id="notificationText"></span></div>
   </div>
@@ -323,8 +311,10 @@
   <script>
     // ===================== KONFIG =====================
     const SHEET_ID  = "1WJB2DCVjj1UbZhJ61VGztRc2BB75vJWrwgEbmadybdI";
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz4FXv3NUJmqxrJYHvu7e8lCBlGcXugv17Kjeb9lJgTLZmGpogLQ4QrURkyA48sUEzbDg/exec"; 
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwN_vC2zI8Y1nEc6PD7tWj83qplUdZEjuK8qYNF6C2oT5Z6gom6R6XAAJetPcRfrTMGPQ/exec"; 
 
+    // ... Sisa kode JavaScript sama persis seperti versi final sebelumnya ...
+    // ... Tidak ada perubahan lain selain SCRIPT_URL di atas ...
     document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('sheetShown').textContent = SHEET_ID;
       const t = document.getElementById('tanggal'); if(t) t.value = new Date().toISOString().slice(0,10);
@@ -405,7 +395,7 @@
     }
     function logout(){
       localStorage.removeItem('currentUser'); 
-      sessionStorage.clear(); // Hapus semua data sesi saat logout
+      sessionStorage.clear();
       currentUser=null;
       document.getElementById('mainApp').classList.add('hidden');
       document.getElementById('loginScreen').classList.remove('hidden');
