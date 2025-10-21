@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SMP Purnawarman — Sistem Absensi Siswa & Guru</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root { --primary:#0b3a82; --accent:#d4af37; --muted:#f6f7fb; }
+    body{background:linear-gradient(180deg,#0b3a82 0%,#174b9c 35%,#fafafa 35%,#fafafa 100%);}
+    .brand-header{background:linear-gradient(90deg,var(--primary),#12356f);color:white;position:relative;padding:2rem 1rem 3.25rem 1rem;box-shadow:0 2px 12px rgba(0,0,0,.25)}
+    .brand-header .gold-bar{position:absolute;left:0;right:0;bottom:0;height:6px;background:linear-gradient(90deg,#b0891a,var(--accent),#ffe08a);box-shadow:0 0 8px rgba(0,0,0,.18) inset}
+    .card{background:white;border-radius:1rem;box-shadow:0 8px 24px rgba(10,38,71,.08)}
+    .pill{border-radius:999px}
+    .spin{animation:spin 1s linear infinite}@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+    .tab-active{color:var(--primary);border-bottom:2px solid var(--primary);font-weight:700;background:#f3f7ff}
+    .btn{border-radius:.75rem;padding:.5rem .9rem}
+    .btn:disabled{opacity:0.6;cursor:not-allowed;}
+    .btn-primary{background:var(--primary);color:white}
+    .btn-accent{background:var(--accent);color:#2a2000}
+  </style>
+</head>
+<body class="min-h-screen">
+
+  <header class="brand-header">
+    <div class="max-w-7xl mx-auto px-4 flex items-center justify-between">
+      <div class="flex items-center gap-4">
+        <div class="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center ring-2 ring-white/30">🏫</div>
+        <div>
+          <h1 class="text-xl md:text-2xl font-extrabold tracking-wide">SMP Purnawarman</h1>
+          <p class="text-white/90">Sistem Absensi Siswa & Guru</p>
+        </div>
+      </div>
+      <div id="headerUser" class="text-right hidden">
+        <div class="text-xs text-white/80">Masuk sebagai</div>
+        <div class="font-semibold" id="loggedInUser">-</div>
+      </div>
+    </div>
+    <div class="gold-bar"></div>
+  </header>
+
+  <section id="loginScreen" class="max-w-md mx-auto -mt-12 px-4">
+    <div class="card p-6">
+      <h2 class="text-lg font-bold text-center mb-2 text-[var(--primary)]">Masuk</h2>
+      <p class="text-center text-gray-600 mb-4">Gunakan akun dari tab <b>Users</b> pada Google Sheet</p>
+      <form id="loginForm" class="space-y-3">
+        <div>
+          <label class="text-sm text-gray-700">Username</label>
+          <input id="username" type="text" class="w-full px-4 py-2 border rounded-lg" placeholder="admin" required>
+        </div>
+        <div>
+          <label class="text-sm text-gray-700">Password</label>
+          <div class="relative">
+            <input id="password" type="password" class="w-full px-4 py-2 pr-12 border rounded-lg" placeholder="••••••" required>
+            <button type="button" onclick="togglePassword()" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">👁️</button>
+          </div>
+        </div>
+        <button class="btn btn-primary w-full">Masuk</button>
+      </form>
+      <div id="loginError" class="hidden mt-3 text-sm p-3 rounded-lg bg-red-50 text-red-700 border border-red-200"></div>
+      <div class="mt-4 text-xs text-gray-500">
+        Terkoneksi ke Sheet: <code id="sheetShown"></code>
+      </div>
+    </div>
+  </section>
+
+  <main id="mainApp" class="hidden max-w-7xl mx-auto px-4 py-6">
+    <div class="flex flex-wrap gap-2 items-center text-sm mb-4">
+      <span id="currentDateTime" class="bg-white/70 pill px-3 py-1 ring-1 ring-black/5"></span>
+      <span id="connectionStatus" class="bg-yellow-100 text-yellow-900 pill px-3 py-1 inline-flex items-center gap-2">
+        <span class="w-3 h-3 border-2 border-yellow-700 border-t-transparent rounded-full spin"></span> Menghubungkan…
+      </span>
+      <span class="ml-auto"><button onclick="logout()" class="btn btn-accent">Keluar</button></span>
+    </div>
+
+    <div class="card overflow-hidden">
+      <div class="flex border-b bg-white/60 text-sm font-medium">
+        <button id="tab-dashboard" class="flex-1 py-3 tab-active" onclick="showTab('dashboard')">📊 Dashboard</button>
+        <button id="tab-absensi"   class="flex-1 py-3" onclick="showTab('absensi')">✅ Absensi</button>
+        <button id="tab-laporan"   class="flex-1 py-3" onclick="showTab('laporan')">📈 Laporan</button>
+        <button id="tab-data"      class="flex-1 py-3" onclick="showTab('data')">👥 Data</button>
+        <button id="tab-petugas"   class="flex-1 py-3" onclick="showTab('petugas')">🔐 Petugas</button>
+      </div>
+
+      <section id="content-dashboard" class="p-6">
+        <div class="grid md:grid-cols-2 gap-6">
+          <div class="card p-5 ring-1 ring-black/5">
+            <h3 class="font-bold mb-3">📅 Statistik Hari Ini</h3>
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+              <div class="p-3 rounded-lg bg-green-50 ring-1 ring-green-200"><div class="text-green-800">Hadir</div><div id="todayHadir" class="font-bold text-xl">0</div></div>
+              <div class="p-3 rounded-lg bg-yellow-50 ring-1 ring-yellow-200"><div class="text-yellow-800">Sakit</div><div id="todaySakit" class="font-bold text-xl">0</div></div>
+              <div class="p-3 rounded-lg bg-blue-50 ring-1 ring-blue-200"><div class="text-blue-800">Izin</div><div id="todayIzin" class="font-bold text-xl">0</div></div>
+              <div class="p-3 rounded-lg bg-red-50 ring-1 ring-red-200"><div class="text-red-800">Alpha</div><div id="todayAlpha" class="font-bold text-xl">0</div></div>
+              <div class="p-3 rounded-lg bg-purple-50 ring-1 ring-purple-200"><div class="text-purple-800">Bolos</div><div id="todayBolos" class="font-bold text-xl">0</div></div>
+            </div>
+          </div>
+          <div class="card p-5 ring-1 ring-black/5">
+            <h3 class="font-bold mb-3">📝 Status Input Absensi</h3>
+            <div id="inputStatus" class="space-y-2 text-sm"></div>
+          </div>
+        </div>
+
+        <div class="mt-6 grid md:grid-cols-2 gap-6">
+          <div class="card p-5 ring-1 ring-black/5">
+            <h3 class="font-bold mb-3">👨‍🎓 Rekap Siswa per Kelas</h3>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm border">
+                <thead class="bg-gray-50">
+                  <tr>
+                    <th class="border px-3 py-2 text-left">Kelas</th>
+                    <th class="border px-3 py-2 text-center">Siswa</th>
+                    <th class="border px-3 py-2 text-center">Hadir</th>
+                    <th class="border px-3 py-2 text-center">Sakit</th>
+                    <th class="border px-3 py-2 text-center">Izin</th>
+                    <th class="border px-3 py-2 text-center">Alpha</th>
+                    <th class="border px-3 py-2 text-center">Bolos</th>
+                    <th class="border px-3 py-2 text-center">% Hadir</th>
+                  </tr>
+                </thead>
+                <tbody id="rekapSiswaTable"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="card p-5 ring-1 ring-black/5">
+            <h3 class="font-bold mb-3">👨‍🏫 Rekap Guru</h3>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm border">
+                <thead class="bg-gray-50">
+                  <tr>
+                    <th class="border px-3 py-2 text-left">Nama</th>
+                    <th class="border px-3 py-2 text-center">NIP</th>
+                    <th class="border px-3 py-2 text-center">Mapel</th>
+                    <th class="border px-3 py-2 text-center">Hadir</th>
+                    <th class="border px-3 py-2 text-center">Sakit</th>
+                    <th class="border px-3 py-2 text-center">Izin</th>
+                    <th class="border px-3 py-2 text-center">Alpha</th>
+                    <th class="border px-3 py-2 text-center">% Hadir</th>
+                  </tr>
+                </thead>
+                <tbody id="rekapGuruTable"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="content-absensi" class="hidden p-6">
+        <h3 class="font-bold text-[var(--primary)] mb-3">Input Absensi</h3>
+        <div class="grid md:grid-cols-3 gap-3 mb-3">
+          <div>
+            <label class="text-sm">Tanggal</label>
+            <input id="tanggal" type="date" class="w-full px-3 py-2 border rounded-lg">
+          </div>
+          <div>
+            <label class="text-sm">Jenis</label>
+            <select id="jenisAbsensi" class="w-full px-3 py-2 border rounded-lg" onchange="toggleKelasField()">
+              <option value="">Pilih Jenis</option>
+              <option value="siswa">Absensi Siswa</option>
+              <option value="guru">Absensi Guru</option>
+            </select>
+          </div>
+          <div id="kelasField">
+            <label class="text-sm">Kelas</label>
+            <select id="kelas" class="w-full px-3 py-2 border rounded-lg">
+              <option value="">Pilih Kelas</option>
+            </select>
+          </div>
+        </div>
+        <div class="flex gap-2 mb-4">
+          <button class="btn btn-primary" onclick="loadAbsensiData()">📋 Muat Data</button>
+          <button id="btnSemuaHadir" class="hidden btn btn-accent" onclick="markAllHadir()">✅ Semua Hadir</button>
+          <button id="saveAbsensiBtn" class="hidden btn bg-indigo-600 text-white" onclick="saveAbsensi()">💾 Simpan</button>
+        </div>
+
+        <div id="daftarAbsensi" class="hidden">
+          <div class="card p-4 ring-1 ring-black/5">
+            <div class="flex items-center justify-between mb-2">
+              <h4 id="absensiTitle" class="font-bold text-[var(--primary)]">Daftar Absensi</h4>
+            </div>
+            <div id="absensiList" class="space-y-2"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="content-laporan" class="hidden p-6">
+        <h3 class="font-bold text-[var(--primary)] mb-3">Laporan Absensi</h3>
+        <div class="grid md:grid-cols-3 gap-3 mb-3">
+          <div><label class="text-sm">Tanggal Mulai</label><input id="filterTanggalMulai" type="date" class="w-full px-3 py-2 border rounded-lg"></div>
+          <div><label class="text-sm">Tanggal Akhir</label><input id="filterTanggalAkhir" type="date" class="w-full px-3 py-2 border rounded-lg"></div>
+          <div><label class="text-sm">Kelas</label>
+            <select id="filterKelas" class="w-full px-3 py-2 border rounded-lg">
+              <option value="">Semua</option>
+            </select>
+          </div>
+        </div>
+        <div class="flex gap-2 mb-4">
+          <button class="btn btn-primary" onclick="tarikDataAbsensi()">📥 Tarik Data</button>
+          <button class="btn bg-emerald-600 text-white" onclick="generateLaporan()">📈 Generate</button>
+        </div>
+        <div id="laporanResult" class="hidden card p-4 ring-1 ring-black/5">
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm border">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="border px-3 py-2 text-left">Nama Siswa</th>
+                  <th class="border px-3 py-2 text-center">Hadir</th>
+                  <th class="border px-3 py-2 text-center">Sakit</th>
+                  <th class="border px-3 py-2 text-center">Izin</th>
+                  <th class="border px-3 py-2 text-center">Alpha</th>
+                  <th class="border px-3 py-2 text-center">Bolos</th>
+                  <th class="border px-3 py-2 text-center">% Kehadiran</th>
+                </tr>
+              </thead>
+              <tbody id="laporanTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="content-data" class="hidden p-6">
+        <div class="grid md:grid-cols-2 gap-6">
+          <div class="card p-4 ring-1 ring-black/5">
+            <h3 class="font-bold mb-3">👨‍🎓 Data Siswa</h3>
+            <div id="dataSiswa" class="max-h-96 overflow-y-auto space-y-2 text-sm">
+              <div class="text-center text-gray-500 py-8"><span class="w-8 h-8 border-2 border-[var(--primary)] border-t-transparent rounded-full spin inline-block mr-2"></span>Memuat data siswa…</div>
+            </div>
+          </div>
+          <div class="card p-4 ring-1 ring-black/5">
+            <h3 class="font-bold mb-3">👨‍🏫 Data Guru (hari ini)</h3>
+            <div id="dataGuru" class="max-h-96 overflow-y-auto space-y-2 text-sm">
+              <div class="text-center text-gray-500 py-8"><span class="w-8 h-8 border-2 border-[var(--primary)] border-t-transparent rounded-full spin inline-block mr-2"></span>Memuat data guru…</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="content-petugas" class="hidden p-6">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="font-bold text-[var(--primary)]">Manajemen Petugas / Guru</h3>
+          <button id="addPetugasBtn" class="btn btn-accent" onclick="showAddPetugasForm()">➕ Tambah</button>
+        </div>
+        <div id="addPetugasForm" class="hidden card p-4 ring-1 ring-black/5 mb-4">
+          <form id="petugasForm" class="grid md:grid-cols-5 gap-3">
+            <input id="newUsername" placeholder="Username" class="px-3 py-2 border rounded-lg" required />
+            <input id="newPassword" type="password" placeholder="Password" class="px-3 py-2 border rounded-lg" required />
+            <input id="newNama" placeholder="Nama Lengkap" class="px-3 py-2 border rounded-lg" required />
+            <select id="newRole" class="px-3 py-2 border rounded-lg" onchange="toggleHariPiket()" required>
+              <option value="">Role</option>
+              <option value="admin">Administrator</option>
+              <option value="piket">Guru Piket</option>
+              <option value="guru">Guru</option>
+            </select>
+            <select id="hariPiket" class="px-3 py-2 border rounded-lg hidden">
+              <option value="">Hari Piket</option>
+              <option>Senin</option><option>Selasa</option><option>Rabu</option><option>Kamis</option><option>Jumat</option><option>Sabtu</option>
+            </select>
+            <div class="md:col-span-5 flex gap-2">
+              <button class="btn btn-primary" type="submit">💾 Simpan</button>
+              <button class="btn bg-gray-600 text-white" type="button" onclick="hideAddPetugasForm()">Batal</button>
+            </div>
+          </form>
+        </div>
+        <div class="card p-4 ring-1 ring-black/5">
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm border">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="border px-3 py-2 text-left">Username</th>
+                  <th class="border px-3 py-2 text-left">Nama</th>
+                  <th class="border px-3 py-2 text-center">Role</th>
+                  <th class="border px-3 py-2 text-center">Hari Piket</th>
+                  <th class="border px-3 py-2 text-center">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="petugasTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="editPasswordModal" class="fixed inset-0 bg-black/50 items-center justify-center z-50 hidden">
+          <div class="bg-white rounded-xl p-6 w-full max-w-md mx-4">
+            <h3 class="font-bold mb-3">Edit Password</h3>
+            <form id="editPasswordForm" class="space-y-3">
+              <input id="editUsername" type="hidden">
+              <div>
+                <label class="text-sm text-gray-700">Nama Pengguna</label>
+                <input id="editUserFullName" class="w-full px-3 py-2 border rounded-lg bg-gray-100" readonly>
+              </div>
+              <div>
+                <label class="text-sm text-gray-700">Password Baru</label>
+                <div class="relative">
+                  <input id="newPasswordEdit" type="password" class="w-full px-3 py-2 pr-10 border rounded-lg" required>
+                  <button type="button" class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500" onclick="toggleEditPassword()">👁️</button>
+                </div>
+              </div>
+              <div class="flex justify-end gap-2">
+                <button type="button" class="px-3 py-2 bg-gray-600 text-white rounded" onclick="closeEditPasswordModal()">Batal</button>
+                <button class="px-3 py-2 btn btn-primary rounded">Simpan</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="notification" class="fixed top-5 right-5 z-50 hidden">
+    <div id="notificationContent" class="px-4 py-2 rounded-lg text-white bg-emerald-600 shadow-lg max-w-sm"><span id="notificationText"></span></div>
+  </div>
+
+  <script>
+    // ===================== KONFIG =====================
+    const SHEET_ID  = "1WJB2DCVjj1UbZhJ61VGztRc2BB75vJWrwgEbmadybdI";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzDMKkx-CNf9ei28yUhCjn4qjpFncX-e6KT9FMta0OoBsKD6FlOE59txFkOaFxESlpt6A/exec";
+
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('sheetShown').textContent = SHEET_ID;
+      const t = document.getElementById('tanggal'); if(t) t.value = new Date().toISOString().slice(0,10);
+      updateDateTime(); setInterval(updateDateTime, 1000);
+      setupLoginForm(); checkExistingLogin();
+      loadAuthorizedUsers();
+      testGoogleSheetsConnection();
+    });
+
+    // ===================== STATE =====================
+    let currentUser = null;
+    let authorizedUsers = [];
+    let allStudents = [];
+    let allTeachers = [];
+    let allAbsensiData = [];
+    let currentAbsensiData = [];
+
+    // ===================== API HELPERS =====================
+    async function apiGet(params={}) {
+      const url = new URL(SCRIPT_URL);
+      Object.entries(params).forEach(([k,v]) => url.searchParams.append(k, v));
+      try { const res = await fetch(url.toString()); return await res.json(); }
+      catch(e) { console.error(e); return {success:false, error:e.message}; }
+    }
+    async function apiPost(action, payload) {
+      const url = new URL(SCRIPT_URL);
+      url.searchParams.set('action', action);
+      try {
+        const res = await fetch(url.toString(), { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+        return await res.json();
+      } catch(e) { console.error(e); return {success:false, error:e.message}; }
+    }
+
+    // ===================== LOGIN =====================
+    function setupLoginForm(){
+      document.getElementById('loginForm').addEventListener('submit', (e)=>{ e.preventDefault(); handleLogin(); });
+    }
+    function togglePassword(){ const el = document.getElementById('password'); el.type = el.type==='password' ? 'text' : 'password'; }
+    function showLoginError(msg){ const box = document.getElementById('loginError'); box.textContent = msg; box.classList.remove('hidden'); }
+    function hideLoginError(){ document.getElementById('loginError').classList.add('hidden'); }
+
+    async function loadAuthorizedUsers(){
+      const r = await apiGet({action:'getUsers', sheetId: SHEET_ID});
+      authorizedUsers = (r && r.success && Array.isArray(r.data)) ? r.data : [];
+    }
+    async function handleLogin(){
+      hideLoginError();
+      const u = document.getElementById('username').value.trim().toLowerCase();
+      const p = document.getElementById('password').value.trim();
+      if(!u||!p) return showLoginError('Username dan password harus diisi.');
+      if(authorizedUsers.length===0) await loadAuthorizedUsers();
+      const norm = x => (x||'').toString().trim();
+      const found = authorizedUsers.find(x => norm(x.username).toLowerCase()===u && norm(x.password)===p);
+      if(!found) return showLoginError('Username atau password salah.');
+      currentUser = {username:found.username, nama:found.nama, role:found.role, hariPiket:found.hariPiket||''};
+      localStorage.setItem('currentUser', JSON.stringify(currentUser));
+      showMainApp();
+    }
+    function checkExistingLogin(){
+      const saved = localStorage.getItem('currentUser');
+      if(saved) { currentUser = JSON.parse(saved); showMainApp(); }
+    }
+    function logout(){
+      localStorage.removeItem('currentUser'); currentUser=null;
+      document.getElementById('mainApp').classList.add('hidden');
+      document.getElementById('loginScreen').classList.remove('hidden');
+      toast('Anda telah keluar.');
+    }
+
+    // ===================== UI =====================
+    function showMainApp(){
+      document.getElementById('loginScreen').classList.add('hidden');
+      document.getElementById('mainApp').classList.remove('hidden');
+      document.getElementById('headerUser').classList.remove('hidden');
+      document.getElementById('loggedInUser').textContent = currentUser.nama;
+      loadInitialData();
+      showTab('dashboard');
+    }
+    function updateDateTime(){
+      const el = document.getElementById('currentDateTime'); if(!el) return;
+      const now = new Date();
+      el.textContent = now.toLocaleString('id-ID', {weekday:'long', year:'numeric', month:'long', day:'numeric', hour:'2-digit', minute:'2-digit'});
+    }
+    function showTab(name){
+      document.querySelectorAll('[id^=content-]').forEach(el=>el.classList.add('hidden'));
+      document.querySelectorAll('[id^=tab-]').forEach(el=>el.classList.remove('tab-active'));
+      document.getElementById('content-'+name).classList.remove('hidden');
+      document.getElementById('tab-'+name).classList.add('tab-active');
+      if(name==='petugas') loadPetugasTable();
+    }
+    function toast(text, type = 'success') {
+      const box = document.getElementById('notification');
+      const content = document.getElementById('notificationContent');
+      const span = document.getElementById('notificationText');
+      span.textContent = text;
+      content.className = "px-4 py-2 rounded-lg text-white shadow-lg max-w-sm " + (type === 'error' ? 'bg-red-600' : 'bg-emerald-600');
+      box.classList.remove('hidden');
+      setTimeout(() => box.classList.add('hidden'), 5000);
+    }
+    
+    function populateKelasDropdowns() {
+      if (!allStudents || allStudents.length === 0) return;
+      const uniqueKelas = [...new Set(allStudents.map(s => String(s.kelas || '').trim()).filter(Boolean))].sort();
+      const selectAbsensi = document.getElementById('kelas');
+      const selectFilter = document.getElementById('filterKelas');
+      const firstOptionAbsensi = selectAbsensi.options[0];
+      const firstOptionFilter = selectFilter.options[0];
+      selectAbsensi.innerHTML = '';
+      selectFilter.innerHTML = '';
+      selectAbsensi.appendChild(firstOptionAbsensi);
+      selectFilter.appendChild(firstOptionFilter);
+      uniqueKelas.forEach(k => {
+        selectAbsensi.add(new Option(k, k));
+        selectFilter.add(new Option(k, k));
+      });
+    }
+
+    // ===================== CONNECTION TEST =====================
+    async function testGoogleSheetsConnection(){
+      const el = document.getElementById('connectionStatus');
+      try {
+        let r = await apiGet({action:'test'});
+        if(!r || r.success===false) r = await apiGet({action:'getUsers', sheetId: SHEET_ID});
+        if(r && (r.success || Array.isArray(r.data))) {
+          el.className = "bg-emerald-100 text-emerald-900 pill px-3 py-1";
+          el.innerHTML = "✅ Terhubung";
+        } else throw new Error('Tidak ada respons');
+      } catch(e) {
+        el.className = "bg-red-100 text-red-900 pill px-3 py-1";
+        el.innerHTML = "❌ Gagal terhubung: " + e.message;
+      }
+    }
+
+    // ===================== LOAD DATA =====================
+    async function loadInitialData(){
+      await Promise.all([loadStudentsFromSheets(), loadTeachersFromSheets(), pullAbsensiForToday()]);
+      loadDashboard();
+    }
+    async function loadStudentsFromSheets(){
+      const r = await apiGet({action:'getSiswa', sheetId: SHEET_ID});
+      allStudents = (r && r.success && Array.isArray(r.data)) ? r.data : [];
+      const html = allStudents.map(s=>`<div class="border rounded p-2"> ${s.nama} <span class="text-xs text-gray-500">(${s.nis||'-'})</span> · Kls ${s.kelas||'-'} </div>`).join('');
+      document.getElementById('dataSiswa').innerHTML = html || '<div class="text-center text-gray-500 py-8">Tidak ada data</div>';
+      populateKelasDropdowns();
+    }
+    async function loadTeachersFromSheets(){
+      const hari = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'][new Date().getDay()];
+      const r = await apiGet({action:'getJadwalGuru', sheetId: SHEET_ID, hari});
+      allTeachers = (r && r.success && Array.isArray(r.data)) ? r.data : [];
+      const html = allTeachers.map(g=>`<div class="border rounded p-2"> ${g.nama} <span class="text-xs text-gray-500">(${g.nip||'-'})</span> · <span class="text-xs text-gray-600">${g.mapel||'-'}</span> </div>`).join('');
+      document.getElementById('dataGuru').innerHTML = html || '<div class="text-center text-gray-500 py-8">Belum ada jadwal guru untuk hari ini</div>';
+    }
+    async function pullAbsensiForToday(){
+      const today = new Date().toISOString().slice(0,10);
+      const r = await apiGet({action:'getAbsensiRange', sheetId: SHEET_ID, start: today, end: today});
+      allAbsensiData = (r && r.success && Array.isArray(r.data)) ? r.data : [];
+    }
+
+    // ===================== DASHBOARD =====================
+    function loadDashboard(){
+      const today = new Date().toISOString().slice(0,10);
+      const td = allAbsensiData.filter(x=>x.tanggal===today);
+      const sum = (jen,st) => td.filter(x=> x.jenisAbsensi===jen && x.status===st).length;
+      document.getElementById('todayHadir').textContent = sum('siswa','Hadir');
+      document.getElementById('todaySakit').textContent = sum('siswa','Sakit');
+      document.getElementById('todayIzin').textContent = sum('siswa','Izin');
+      document.getElementById('todayAlpha').textContent = sum('siswa','Alpha');
+      document.getElementById('todayBolos').textContent = sum('siswa','Bolos');
+      const classes = [...new Set(allStudents.map(s => String(s.kelas||'').trim()).filter(Boolean))].sort();
+      const container = document.getElementById('inputStatus');
+      container.innerHTML = classes.map(k => {
+        const has = allAbsensiData.some(x=> x.tanggal===today && x.jenisAbsensi==='siswa' && x.kelas==k);
+        return `<div class="flex justify-between items-center p-2 ${has?'bg-emerald-50 text-emerald-800':'bg-red-50 text-red-800'} rounded"><span>Kelas ${k}</span><span class="text-xs">${has?'Sudah Input':'Belum Input'}</span></div>`;
+      }).join('') + (()=>{
+        const hasG = allAbsensiData.some(x=> x.tanggal===today && x.jenisAbsensi==='guru');
+        return `<div class="flex justify-between items-center p-2 ${hasG?'bg-emerald-50 text-emerald-800':'bg-red-50 text-red-800'} rounded"><span>Guru</span><span class="text-xs">${hasG?'Sudah Input':'Belum Input'}</span></div>`;
+      })();
+      const tbodyS = document.getElementById('rekapSiswaTable');
+      tbodyS.innerHTML = classes.map(k=>{
+        const siswa = allStudents.filter(s => String(s.kelas||'').trim()==k);
+        const ab = allAbsensiData.filter(x=> x.kelas==k && x.jenisAbsensi==='siswa');
+        const c = st => ab.filter(x=>x.status===st).length;
+        const totalHadir = c('Hadir');
+        const totalAbsen = c('Sakit') + c('Izin') + c('Alpha') + c('Bolos');
+        const totalPertemuan = totalHadir + totalAbsen;
+        const pct = totalPertemuan ? ((totalHadir / totalPertemuan) * 100).toFixed(1) : '0.0';
+        const badge = (pct>=80)? 'bg-emerald-100 text-emerald-800' : (pct>=60? 'bg-yellow-100 text-yellow-800':'bg-red-100 text-red-800');
+        return `<tr>
+          <td class="border px-3 py-2 font-medium">Kelas ${k}</td><td class="border px-3 py-2 text-center">${siswa.length}</td><td class="border px-3 py-2 text-center">${c('Hadir')}</td><td class="border px-3 py-2 text-center">${c('Sakit')}</td><td class="border px-3 py-2 text-center">${c('Izin')}</td><td class="border px-3 py-2 text-center">${c('Alpha')}</td><td class="border px-3 py-2 text-center">${c('Bolos')}</td><td class="border px-3 py-2 text-center"><span class="px-2 py-0.5 pill ${badge}">${pct}%</span></td>
+        </tr>`;
+      }).join('');
+      const tbodyG = document.getElementById('rekapGuruTable');
+      tbodyG.innerHTML = allTeachers.map(g=>{
+        const ab = allAbsensiData.filter(x=> x.jenisAbsensi==='guru' && (x.identifier===g.nip || x.nama===g.nama));
+        const c = st => ab.filter(x=>x.status===st).length;
+        const total = c('Hadir')+c('Sakit')+c('Izin')+c('Alpha');
+        const pct = total? ((c('Hadir')/total)*100).toFixed(1) : '0.0';
+        const badge = (pct>=80)? 'bg-emerald-100 text-emerald-800' : (pct>=60? 'bg-yellow-100 text-yellow-800':'bg-red-100 text-red-800');
+        return `<tr>
+          <td class="border px-3 py-2">${g.nama}</td><td class="border px-3 py-2 text-center">${g.nip||'-'}</td><td class="border px-3 py-2 text-center">${g.mapel||'-'}</td><td class="border px-3 py-2 text-center">${c('Hadir')}</td><td class="border px-3 py-2 text-center">${c('Sakit')}</td><td class="border px-3 py-2 text-center">${c('Izin')}</td><td class="border px-3 py-2 text-center">${c('Alpha')}</td><td class="border px-3 py-2 text-center"><span class="px-2 py-0.5 pill ${badge}">${pct}%</span></td>
+        </tr>`;
+      }).join('');
+    }
+
+    // ===================== ABSENSI =====================
+    function toggleKelasField(){ document.getElementById('kelas').disabled = !(document.getElementById('jenisAbsensi').value==='siswa'); }
+    async function loadAbsensiData(){
+      const tanggal = document.getElementById('tanggal').value;
+      const jenis = document.getElementById('jenisAbsensi').value;
+      const kelas = document.getElementById('kelas').value;
+      if(!tanggal || !jenis || (jenis==='siswa' && !kelas)) return toast('Lengkapi tanggal, jenis, dan kelas.','error');
+      let list = [];
+      if(jenis==='siswa'){
+        if(allStudents.length===0) await loadStudentsFromSheets();
+        list = allStudents.filter(s => String(s.kelas || '').trim() === String(kelas).trim()).map(s=>({nama:s.nama, identifier:s.nis}));
+      } else {
+        if(allTeachers.length===0) await loadTeachersFromSheets();
+        list = allTeachers.map(g=>({nama:g.nama, identifier:g.nip||g.nama}));
+      }
+      if(list.length===0){ toast('Data untuk pilihan ini kosong. Cek kolom "kelas" di sheet SISWA.','error'); return;}
+      currentAbsensiData = list.map(x => ({ tanggal, kelas:(jenis==='siswa'?kelas:''), jenisAbsensi: jenis, nama:x.nama, identifier:x.identifier, status:'Hadir', savedBy: currentUser.username }));
+      document.getElementById('btnSemuaHadir').classList.remove('hidden');
+      document.getElementById('saveAbsensiBtn').classList.remove('hidden');
+      document.getElementById('daftarAbsensi').classList.remove('hidden');
+      document.getElementById('absensiTitle').textContent = `Daftar Absensi ${jenis==='siswa'?('Siswa Kelas '+kelas):'Guru'} — ${tanggal}`;
+      const container = document.getElementById('absensiList');
+      container.innerHTML = currentAbsensiData.map((row,i)=>`
+        <div class="flex items-center justify-between border rounded-lg p-2">
+          <div class="text-sm"><div class="font-medium">${row.nama}</div><div class="text-gray-500">${row.identifier||'-'}</div></div>
+          <select class="px-2 py-1 border rounded" data-idx="${i}" onchange="onChangeStatus(event)">
+            ${['Hadir','Sakit','Izin','Alpha','Bolos'].map(s=>`<option ${s==='Hadir'?'selected':''}>${s}</option>`).join('')}
+          </select>
+        </div>`).join('');
+      checkAbsensiPermission();
+    }
+    function onChangeStatus(e){ const i = +e.target.dataset.idx; currentAbsensiData[i].status = e.target.value; }
+    function markAllHadir(){ currentAbsensiData.forEach(r=> r.status='Hadir'); document.querySelectorAll('#absensiList select').forEach(sel=> sel.value='Hadir'); }
+
+    function checkAbsensiPermission(){
+      const btn = document.getElementById('saveAbsensiBtn');
+      if(!currentUser){ btn.disabled=true; btn.title='Login dulu.'; return; }
+      if(currentUser.role==='admin' || currentUser.role==='piket'){
+        btn.disabled=false; btn.title=''; return;
+      }
+      btn.disabled=true; btn.title='Hanya admin/piket yang dapat menyimpan.';
+    }
+
+    async function saveAbsensi(){
+      if(!currentAbsensiData || currentAbsensiData.length===0) return toast('Tidak ada data untuk disimpan.','error');
+      const saveBtn = document.getElementById('saveAbsensiBtn');
+      const originalText = saveBtn.innerHTML;
+      saveBtn.disabled = true;
+      saveBtn.innerHTML = '<span class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full spin"></span>&nbsp;Menyimpan...';
+      const payload = { sheetId: SHEET_ID, items: currentAbsensiData };
+      const r = await apiPost('saveAbsensi', payload);
+      if(r && r.success){ 
+        toast('Absensi berhasil tersimpan.'); 
+        await pullAbsensiForToday(); 
+        loadDashboard(); 
+      } else {
+        toast('Gagal menyimpan: ' + (r.error || 'Tidak ada respons dari server.'), 'error');
+      }
+      saveBtn.disabled = false;
+      saveBtn.innerHTML = originalText;
+    }
+
+    // ===================== LAPORAN =====================
+    async function tarikDataAbsensi(){
+      const start = document.getElementById('filterTanggalMulai').value || new Date().toISOString().slice(0,10);
+      const end   = document.getElementById('filterTanggalAkhir').value || new Date().toISOString().slice(0,10);
+      const kelas = document.getElementById('filterKelas').value || '';
+      const r = await apiGet({action:'getAbsensiRange', sheetId: SHEET_ID, start, end, kelas});
+      if(r && r.success && Array.isArray(r.data)){ allAbsensiData = r.data; toast('Data ditarik.'); loadDashboard(); }
+      else toast('Gagal menarik data.','error');
+    }
+    function generateLaporan(){
+      const map = new Map();
+      allAbsensiData.filter(x=>x.jenisAbsensi==='siswa').forEach(row=>{
+        const key = row.identifier+"|"+row.nama;
+        if(!map.has(key)) map.set(key, {nama:row.nama, hadir:0,sakit:0,izin:0,alpha:0,bolos:0});
+        const o = map.get(key); const k = row.status.toLowerCase(); if(o[k]!==undefined) o[k]++;
+      });
+      const rows = [...map.values()].map(o=>{
+        const total = o.hadir+o.sakit+o.izin+o.alpha+o.bolos;
+        const pct = total? ((o.hadir/total)*100).toFixed(1) : '0.0';
+        const badge = (pct>=80)? 'bg-emerald-100 text-emerald-800' : (pct>=60? 'bg-yellow-100 text-yellow-800':'bg-red-100 text-red-800');
+        return `<tr>
+          <td class="border px-3 py-2">${o.nama}</td><td class="border px-3 py-2 text-center">${o.hadir}</td><td class="border px-3 py-2 text-center">${o.sakit}</td><td class="border px-3 py-2 text-center">${o.izin}</td><td class="border px-3 py-2 text-center">${o.alpha}</td><td class="border px-3 py-2 text-center">${o.bolos}</td><td class="border px-3 py-2 text-center"><span class="px-2 py-0.5 pill ${badge}">${pct}%</span></td>
+        </tr>`;
+      }).join('');
+      document.getElementById('laporanTableBody').innerHTML = rows || '<tr><td colspan="7" class="border px-3 py-2 text-center text-gray-500">Belum ada data</td></tr>';
+      document.getElementById('laporanResult').classList.remove('hidden');
+    }
+
+    // ===================== PETUGAS =====================
+    function showAddPetugasForm(){ document.getElementById('addPetugasForm').classList.remove('hidden'); document.getElementById('petugasForm').onsubmit = handleAddPetugas; }
+    function hideAddPetugasForm(){ document.getElementById('addPetugasForm').classList.add('hidden'); document.getElementById('petugasForm').reset(); }
+    function toggleHariPiket(){ const r = document.getElementById('newRole').value; const d = document.getElementById('hariPiket'); if(r==='piket'){ d.classList.remove('hidden'); d.required=true; } else { d.classList.add('hidden'); d.required=false; d.value=''; } }
+    async function handleAddPetugas(e){
+      e.preventDefault();
+      const u = document.getElementById('newUsername').value.trim();
+      const pw= document.getElementById('newPassword').value.trim();
+      const nm= document.getElementById('newNama').value.trim();
+      const rl= document.getElementById('newRole').value;
+      const hp= document.getElementById('hariPiket').value||'';
+      if(!u||!pw||!nm||!rl) return toast('Semua field harus diisi.','error');
+      if(rl==='piket'){
+        const exist = authorizedUsers.find(x=> x.role==='piket' && (x.hariPiket||'')===hp);
+        if(exist) return toast(`Hari ${hp} sudah ditugaskan ke ${exist.nama}.`,'error');
+      }
+      const newUser = { username:u, password:pw, nama:nm, role:rl, hariPiket: rl==='piket'? hp : '' };
+      let r = await apiPost('addUser', {sheetId: SHEET_ID, ...newUser});
+      if(r && r.success){ authorizedUsers.push(newUser); toast('Petugas ditambahkan.'); hideAddPetugasForm(); loadPetugasTable(); }
+      else toast('Gagal menambah user: ' + (r.error || 'Unknown error'),'error');
+    }
+    function loadPetugasTable(){
+      const tbody = document.getElementById('petugasTableBody');
+      const roleLabel = (r)=> r==='admin'? '👑 Admin' : r==='piket'? '🔐 Piket' : '👨‍🏫 Guru';
+      tbody.innerHTML = (authorizedUsers||[]).map(u=>{
+        const act = (currentUser && currentUser.role==='admin') ? `<div class='flex gap-1 justify-center'>
+            <button class='px-2 py-1 rounded text-xs btn btn-primary' onclick="editPassword('${u.username}', '${u.nama}')">🔑 Edit</button>
+            ${currentUser.username!==u.username? `<button class='px-2 py-1 rounded text-xs bg-red-600 text-white' onclick="deletePetugas('${u.username}')">🗑️ Hapus</button>`:''}
+          </div>` : '<span class="text-gray-400 text-xs">-</span>';
+        return `<tr>
+          <td class='border px-3 py-2'>${u.username}</td><td class='border px-3 py-2'>${u.nama}</td><td class='border px-3 py-2 text-center'>${roleLabel(u.role)}</td><td class='border px-3 py-2 text-center'>${u.hariPiket? `<span class='px-2 py-0.5 pill bg-blue-50 ring-1 ring-blue-200 text-blue-900 text-xs'>${u.hariPiket}</span>`:'<span class="text-gray-400 text-xs">-</span>'}</td><td class='border px-3 py-2 text-center'>${act}</td>
+        </tr>`;
+      }).join('');
+    }
+    function editPassword(username, nama){ document.getElementById('editUsername').value = username; document.getElementById('editUserFullName').value = nama; document.getElementById('newPasswordEdit').value=''; const modal = document.getElementById('editPasswordModal'); modal.classList.remove('hidden'); modal.style.display = 'flex'; modal.querySelector('form').onsubmit = handleEditPassword; }
+    function closeEditPasswordModal(){ const modal = document.getElementById('editPasswordModal'); modal.classList.add('hidden'); modal.style.display = 'none'; modal.querySelector('form').reset(); }
+    function toggleEditPassword(){ const inp = document.getElementById('newPasswordEdit'); inp.type = inp.type==='password'?'text':'password'; }
+    async function handleEditPassword(e){
+      e.preventDefault();
+      const uname = document.getElementById('editUsername').value;
+      const newPw = document.getElementById('newPasswordEdit').value.trim();
+      if(newPw.length < 6) return toast('Password minimal 6 karakter.','error');
+      const r = await apiPost('updateUser', {sheetId: SHEET_ID, username: uname, updates:{password:newPw}});
+      if(r && r.success){
+        const idx = authorizedUsers.findIndex(x=>x.username===uname);
+        if(idx>-1) authorizedUsers[idx].password=newPw;
+        toast('Password diubah.'); closeEditPasswordModal(); loadPetugasTable();
+      } else toast('Gagal update password: ' + (r.error || 'Unknown error'),'error');
+    }
+    async function deletePetugas(username){
+      if(currentUser && currentUser.username===username) return toast('Tidak dapat menghapus akun yang sedang digunakan.','error');
+      if(!confirm(`Hapus user ${username}?`)) return;
+      const r = await apiPost('deleteUser', {sheetId: SHEET_ID, username});
+      if(r && r.success){ authorizedUsers = authorizedUsers.filter(x=>x.username!==username); loadPetugasTable(); toast('User dihapus.'); }
+      else toast('Gagal menghapus user: ' + (r.error || 'Unknown error'),'error');
+    }
+  </script>
+</body>
+</html>
