@@ -340,18 +340,17 @@
     }
     async function apiPost(action, payload) {
       const url = new URL(SCRIPT_URL);
-      // [PERBAIKAN] Jangan kirim 'action' sebagai query param di POST
-      // url.searchParams.set('action', action); 
       try {
         const body = { ...payload, action: action };
         const res = await fetch(url.toString(), { 
           method:'POST', 
-          mode: 'cors', // Mode CORS eksplisit
+          mode: 'cors',
           headers:{'Content-Type':'application/json'}, 
-          body: JSON.stringify(body) 
+          body: JSON.stringify(body),
+          redirect: 'follow'
         });
         return await res.json();
-      } catch(e) { console.error(e); return {success:false, error:e.message}; }
+      } catch(e) { console.error(e); return {success:false, error:`Koneksi ke server gagal: ${e.message}`}; }
     }
 
     // ===================== LOGIN & STATE MANAGEMENT =====================
@@ -364,14 +363,24 @@
 
     async function loadAuthorizedUsers(){
       const r = await apiGet({action:'getUsers', sheetId: SHEET_ID});
-      authorizedUsers = (r && r.success && Array.isArray(r.data)) ? r.data : [];
+      if (r && r.success) {
+        authorizedUsers = r.data || [];
+      } else {
+        authorizedUsers = [];
+        console.error("Gagal memuat daftar pengguna:", r.error);
+        toast("Gagal memuat daftar pengguna. Periksa SCRIPT_URL.", "error");
+      }
     }
     async function handleLogin(){
       hideLoginError();
       const u = document.getElementById('username').value.trim().toLowerCase();
       const p = document.getElementById('password').value.trim();
       if(!u||!p) return showLoginError('Username dan password harus diisi.');
-      if(authorizedUsers.length===0) await loadAuthorizedUsers();
+      if(authorizedUsers.length===0) {
+        toast("Daftar pengguna kosong. Menunggu koneksi...", "error");
+        await loadAuthorizedUsers();
+        if(authorizedUsers.length === 0) return showLoginError("Tidak dapat terhubung ke server untuk verifikasi pengguna.");
+      }
       const norm = x => (x||'').toString().trim();
       const found = authorizedUsers.find(x => norm(x.username).toLowerCase()===u && norm(x.password)===p);
       if(!found) return showLoginError('Username atau password salah.');
@@ -446,10 +455,12 @@
       try {
         let r = await apiGet({action:'test'});
         if(!r || r.success===false) r = await apiGet({action:'getUsers', sheetId: SHEET_ID});
-        if(r && (r.success || Array.isArray(r.data))) {
+        if(r && r.success) {
           el.className = "bg-emerald-100 text-emerald-900 pill px-3 py-1";
           el.innerHTML = "✅ Terhubung";
-        } else throw new Error('Tidak ada respons dari server');
+        } else {
+          throw new Error(r.error || 'Respons server tidak valid');
+        }
       } catch(e) {
         el.className = "bg-red-100 text-red-900 pill px-3 py-1";
         el.innerHTML = "❌ Gagal terhubung: " + e.message;
@@ -587,6 +598,7 @@
     }
     
     async function markAllHadir() {
+      if (currentAbsensiData.length === 0) return toast("Muat data terlebih dahulu sebelum menandai hadir.", "error");
       currentAbsensiData.forEach(r => r.status = 'Hadir');
       document.querySelectorAll('#absensiList select').forEach(sel => sel.value = 'Hadir');
       saveStateToSession(); 
