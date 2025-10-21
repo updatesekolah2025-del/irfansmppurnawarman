@@ -312,7 +312,7 @@
     // ===================== KONFIG =====================
     // PENTING: Ganti kedua nilai di bawah ini dengan milik Anda
     const SHEET_ID  = "1WJB2DCVjj1UbZhJ61VGztRc2BB75vJWrwgEbmadybdI";
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw3o79KvXAs5CPgAzS59aNZfWxwADrQDj-KR3W0tZS_6buSLou2brybVvYiu34jyG1ICg/exec"; 
+    const SCRIPT_URL = "URL_SCRIPT_ANDA_YANG_BARU_HASIL_DEPLOY"; 
 
     document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('sheetShown').textContent = SHEET_ID;
@@ -340,9 +340,16 @@
     }
     async function apiPost(action, payload) {
       const url = new URL(SCRIPT_URL);
-      url.searchParams.set('action', action);
+      // [PERBAIKAN] Jangan kirim 'action' sebagai query param di POST
+      // url.searchParams.set('action', action); 
       try {
-        const res = await fetch(url.toString(), { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+        const body = { ...payload, action: action };
+        const res = await fetch(url.toString(), { 
+          method:'POST', 
+          mode: 'cors', // Mode CORS eksplisit
+          headers:{'Content-Type':'application/json'}, 
+          body: JSON.stringify(body) 
+        });
         return await res.json();
       } catch(e) { console.error(e); return {success:false, error:e.message}; }
     }
