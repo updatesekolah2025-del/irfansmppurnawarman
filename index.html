@@ -14,14 +14,17 @@
     .pill{border-radius:999px}
     .spin{animation:spin 1s linear infinite}@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
     .tab-active{color:var(--primary);border-bottom:2px solid var(--primary);font-weight:700;background:#f3f7ff}
-    .btn{border-radius:.75rem;padding:.5rem .9rem}
+    .btn{border-radius:.75rem;padding:.5rem .9rem; transition: background-color 0.2s;}
     .btn:disabled{opacity:0.6;cursor:not-allowed;}
     .btn-primary{background:var(--primary);color:white}
+    .btn-primary:hover{background-color: #174b9c;}
     .btn-accent{background:var(--accent);color:#2a2000}
+    .btn-accent:hover{background-color: #b0891a;}
   </style>
 </head>
 <body class="min-h-screen">
 
+  <!-- HEADER -->
   <header class="brand-header">
     <div class="max-w-7xl mx-auto px-4 flex items-center justify-between">
       <div class="flex items-center gap-4">
@@ -39,6 +42,7 @@
     <div class="gold-bar"></div>
   </header>
 
+  <!-- LOGIN -->
   <section id="loginScreen" class="max-w-md mx-auto -mt-12 px-4">
     <div class="card p-6">
       <h2 class="text-lg font-bold text-center mb-2 text-[var(--primary)]">Masuk</h2>
@@ -64,7 +68,9 @@
     </div>
   </section>
 
+  <!-- APP -->
   <main id="mainApp" class="hidden max-w-7xl mx-auto px-4 py-6">
+    <!-- top bar -->
     <div class="flex flex-wrap gap-2 items-center text-sm mb-4">
       <span id="currentDateTime" class="bg-white/70 pill px-3 py-1 ring-1 ring-black/5"></span>
       <span id="connectionStatus" class="bg-yellow-100 text-yellow-900 pill px-3 py-1 inline-flex items-center gap-2">
@@ -73,16 +79,18 @@
       <span class="ml-auto"><button onclick="logout()" class="btn btn-accent">Keluar</button></span>
     </div>
 
+    <!-- tabs -->
     <div class="card overflow-hidden">
-      <div class="flex border-b bg-white/60 text-sm font-medium">
-        <button id="tab-dashboard" class="flex-1 py-3 tab-active" onclick="showTab('dashboard')">📊 Dashboard</button>
-        <button id="tab-absensi"   class="flex-1 py-3" onclick="showTab('absensi')">✅ Absensi</button>
-        <button id="tab-laporan"   class="flex-1 py-3" onclick="showTab('laporan')">📈 Laporan</button>
-        <button id="tab-data"      class="flex-1 py-3" onclick="showTab('data')">👥 Data</button>
-        <button id="tab-petugas"   class="flex-1 py-3" onclick="showTab('petugas')">🔐 Petugas</button>
+      <div class="flex border-b bg-white/60 text-sm font-medium overflow-x-auto">
+        <button id="tab-dashboard" class="flex-1 py-3 px-2 tab-active" onclick="showTab('dashboard')">📊 Dashboard</button>
+        <button id="tab-absensi"   class="flex-1 py-3 px-2" onclick="showTab('absensi')">✅ Absensi</button>
+        <button id="tab-laporan"   class="flex-1 py-3 px-2" onclick="showTab('laporan')">📈 Laporan</button>
+        <button id="tab-data"      class="flex-1 py-3 px-2" onclick="showTab('data')">👥 Data</button>
+        <button id="tab-petugas"   class="flex-1 py-3 px-2" onclick="showTab('petugas')">🔐 Petugas</button>
       </div>
 
-      <section id="content-dashboard" class="p-6">
+      <!-- DASHBOARD -->
+      <section id="content-dashboard" class="p-4 md:p-6">
         <div class="grid md:grid-cols-2 gap-6">
           <div class="card p-5 ring-1 ring-black/5">
             <h3 class="font-bold mb-3">📅 Statistik Hari Ini</h3>
@@ -144,7 +152,8 @@
         </div>
       </section>
 
-      <section id="content-absensi" class="hidden p-6">
+      <!-- ABSENSI -->
+      <section id="content-absensi" class="hidden p-4 md:p-6">
         <h3 class="font-bold text-[var(--primary)] mb-3">Input Absensi</h3>
         <div class="grid md:grid-cols-3 gap-3 mb-3">
           <div>
@@ -182,7 +191,8 @@
         </div>
       </section>
 
-      <section id="content-laporan" class="hidden p-6">
+      <!-- LAPORAN -->
+      <section id="content-laporan" class="hidden p-4 md:p-6">
         <h3 class="font-bold text-[var(--primary)] mb-3">Laporan Absensi</h3>
         <div class="grid md:grid-cols-3 gap-3 mb-3">
           <div><label class="text-sm">Tanggal Mulai</label><input id="filterTanggalMulai" type="date" class="w-full px-3 py-2 border rounded-lg"></div>
@@ -217,7 +227,8 @@
         </div>
       </section>
 
-      <section id="content-data" class="hidden p-6">
+      <!-- DATA -->
+      <section id="content-data" class="hidden p-4 md:p-6">
         <div class="grid md:grid-cols-2 gap-6">
           <div class="card p-4 ring-1 ring-black/5">
             <h3 class="font-bold mb-3">👨‍🎓 Data Siswa</h3>
@@ -234,7 +245,8 @@
         </div>
       </section>
 
-      <section id="content-petugas" class="hidden p-6">
+      <!-- PETUGAS -->
+      <section id="content-petugas" class="hidden p-4 md:p-6">
         <div class="flex items-center justify-between mb-3">
           <h3 class="font-bold text-[var(--primary)]">Manajemen Petugas / Guru</h3>
           <button id="addPetugasBtn" class="btn btn-accent" onclick="showAddPetugasForm()">➕ Tambah</button>
@@ -277,6 +289,7 @@
           </div>
         </div>
 
+        <!-- Modal Edit Password -->
         <div id="editPasswordModal" class="fixed inset-0 bg-black/50 items-center justify-center z-50 hidden">
           <div class="bg-white rounded-xl p-6 w-full max-w-md mx-4">
             <h3 class="font-bold mb-3">Edit Password</h3>
@@ -304,6 +317,7 @@
     </div>
   </main>
 
+  <!-- toast -->
   <div id="notification" class="fixed top-5 right-5 z-50 hidden">
     <div id="notificationContent" class="px-4 py-2 rounded-lg text-white bg-emerald-600 shadow-lg max-w-sm"><span id="notificationText"></span></div>
   </div>
@@ -311,15 +325,19 @@
   <script>
     // ===================== KONFIG =====================
     const SHEET_ID  = "1WJB2DCVjj1UbZhJ61VGztRc2BB75vJWrwgEbmadybdI";
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwN_vC2zI8Y1nEc6PD7tWj83qplUdZEjuK8qYNF6C2oT5Z6gom6R6XAAJetPcRfrTMGPQ/exec"; 
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwQ3keFgR3E1LIitf--bl-KkK7gnxzxsYMh58xWVGDITCeuiBe_J2A-0C5OQrKyBkvoqg/exec"; 
 
     document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('sheetShown').textContent = SHEET_ID;
       const t = document.getElementById('tanggal'); if(t) t.value = new Date().toISOString().slice(0,10);
       updateDateTime(); setInterval(updateDateTime, 1000);
-      setupLoginForm(); checkExistingLogin();
-      loadAuthorizedUsers();
-      testGoogleSheetsConnection();
+      setupLoginForm(); 
+      testGoogleSheetsConnection().then(connected => {
+          if (connected) {
+              loadAuthorizedUsers();
+              checkExistingLogin();
+          }
+      });
     });
 
     // ===================== STATE =====================
@@ -381,7 +399,7 @@
         if(authorizedUsers.length === 0) return showLoginError("Tidak dapat terhubung ke server untuk verifikasi pengguna.");
       }
       const norm = x => (x||'').toString().trim();
-      const found = authorizedUsers.find(x => norm(x.username).toLowerCase()===u && norm(x.password)==p);
+      const found = authorizedUsers.find(x => norm(x.username).toLowerCase()===u && String(x.password)===p);
       if(!found) return showLoginError('Username atau password salah.');
       currentUser = {username:found.username, nama:found.nama, role:found.role, hariPiket:found.hariPiket||''};
       localStorage.setItem('currentUser', JSON.stringify(currentUser));
@@ -456,12 +474,14 @@
         if(rUsers && rUsers.success) {
           el.className = "bg-emerald-100 text-emerald-900 pill px-3 py-1";
           el.innerHTML = "✅ Terhubung";
+          return true;
         } else {
           throw new Error(rUsers.error || 'Respons server tidak valid');
         }
       } catch(e) {
         el.className = "bg-red-100 text-red-900 pill px-3 py-1";
         el.innerHTML = `❌ Gagal terhubung: ${e.message}`;
+        return false;
       }
     }
 
