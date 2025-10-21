@@ -22,6 +22,7 @@
 </head>
 <body class="min-h-screen">
 
+  <!-- HEADER -->
   <header class="brand-header">
     <div class="max-w-7xl mx-auto px-4 flex items-center justify-between">
       <div class="flex items-center gap-4">
@@ -39,6 +40,7 @@
     <div class="gold-bar"></div>
   </header>
 
+  <!-- LOGIN -->
   <section id="loginScreen" class="max-w-md mx-auto -mt-12 px-4">
     <div class="card p-6">
       <h2 class="text-lg font-bold text-center mb-2 text-[var(--primary)]">Masuk</h2>
@@ -64,7 +66,9 @@
     </div>
   </section>
 
+  <!-- APP -->
   <main id="mainApp" class="hidden max-w-7xl mx-auto px-4 py-6">
+    <!-- top bar -->
     <div class="flex flex-wrap gap-2 items-center text-sm mb-4">
       <span id="currentDateTime" class="bg-white/70 pill px-3 py-1 ring-1 ring-black/5"></span>
       <span id="connectionStatus" class="bg-yellow-100 text-yellow-900 pill px-3 py-1 inline-flex items-center gap-2">
@@ -73,6 +77,7 @@
       <span class="ml-auto"><button onclick="logout()" class="btn btn-accent">Keluar</button></span>
     </div>
 
+    <!-- tabs -->
     <div class="card overflow-hidden">
       <div class="flex border-b bg-white/60 text-sm font-medium">
         <button id="tab-dashboard" class="flex-1 py-3 tab-active" onclick="showTab('dashboard')">📊 Dashboard</button>
@@ -82,6 +87,7 @@
         <button id="tab-petugas"   class="flex-1 py-3" onclick="showTab('petugas')">🔐 Petugas</button>
       </div>
 
+      <!-- DASHBOARD -->
       <section id="content-dashboard" class="p-6">
         <div class="grid md:grid-cols-2 gap-6">
           <div class="card p-5 ring-1 ring-black/5">
@@ -144,6 +150,7 @@
         </div>
       </section>
 
+      <!-- ABSENSI -->
       <section id="content-absensi" class="hidden p-6">
         <h3 class="font-bold text-[var(--primary)] mb-3">Input Absensi</h3>
         <div class="grid md:grid-cols-3 gap-3 mb-3">
@@ -182,6 +189,7 @@
         </div>
       </section>
 
+      <!-- LAPORAN -->
       <section id="content-laporan" class="hidden p-6">
         <h3 class="font-bold text-[var(--primary)] mb-3">Laporan Absensi</h3>
         <div class="grid md:grid-cols-3 gap-3 mb-3">
@@ -217,6 +225,7 @@
         </div>
       </section>
 
+      <!-- DATA -->
       <section id="content-data" class="hidden p-6">
         <div class="grid md:grid-cols-2 gap-6">
           <div class="card p-4 ring-1 ring-black/5">
@@ -234,6 +243,7 @@
         </div>
       </section>
 
+      <!-- PETUGAS -->
       <section id="content-petugas" class="hidden p-6">
         <div class="flex items-center justify-between mb-3">
           <h3 class="font-bold text-[var(--primary)]">Manajemen Petugas / Guru</h3>
@@ -277,6 +287,7 @@
           </div>
         </div>
 
+        <!-- Modal Edit Password -->
         <div id="editPasswordModal" class="fixed inset-0 bg-black/50 items-center justify-center z-50 hidden">
           <div class="bg-white rounded-xl p-6 w-full max-w-md mx-4">
             <h3 class="font-bold mb-3">Edit Password</h3>
@@ -304,15 +315,15 @@
     </div>
   </main>
 
+  <!-- toast -->
   <div id="notification" class="fixed top-5 right-5 z-50 hidden">
     <div id="notificationContent" class="px-4 py-2 rounded-lg text-white bg-emerald-600 shadow-lg max-w-sm"><span id="notificationText"></span></div>
   </div>
 
   <script>
     // ===================== KONFIG =====================
-    // PENTING: Ganti kedua nilai di bawah ini dengan milik Anda
     const SHEET_ID  = "1WJB2DCVjj1UbZhJ61VGztRc2BB75vJWrwgEbmadybdI";
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbykWaU6bRY0P2OMqfK3Ts8YlVyr5msvH6lB6CSz9V8G0hi5SFLYpzDoiwmFf8tpHBn1Dw/exec"; 
+    const SCRIPT_URL = "URL_SCRIPT_ANDA_YANG_BARU_HASIL_DEPLOY"; 
 
     document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('sheetShown').textContent = SHEET_ID;
@@ -336,7 +347,7 @@
       const url = new URL(SCRIPT_URL);
       Object.entries(params).forEach(([k,v]) => url.searchParams.append(k, v));
       try { const res = await fetch(url.toString()); return await res.json(); }
-      catch(e) { console.error(e); return {success:false, error:e.message}; }
+      catch(e) { console.error("GET Error:", e); return {success:false, error:e.message}; }
     }
     async function apiPost(action, payload) {
       const url = new URL(SCRIPT_URL);
@@ -350,7 +361,7 @@
           redirect: 'follow'
         });
         return await res.json();
-      } catch(e) { console.error(e); return {success:false, error:`Koneksi ke server gagal: ${e.message}`}; }
+      } catch(e) { console.error("POST Error:", e); return {success:false, error:`Koneksi ke server gagal: ${e.message}`}; }
     }
 
     // ===================== LOGIN & STATE MANAGEMENT =====================
@@ -367,8 +378,8 @@
         authorizedUsers = r.data || [];
       } else {
         authorizedUsers = [];
-        console.error("Gagal memuat daftar pengguna:", r.error);
-        toast("Gagal memuat daftar pengguna. Periksa SCRIPT_URL.", "error");
+        console.error("Gagal memuat daftar pengguna:", r ? r.error : "No response");
+        toast("Gagal memuat daftar pengguna. Periksa SCRIPT_URL dan koneksi.", "error");
       }
     }
     async function handleLogin(){
@@ -453,20 +464,16 @@
     async function testGoogleSheetsConnection(){
       const el = document.getElementById('connectionStatus');
       try {
-        // Tes yang lebih komprehensif: coba ambil data pengguna dan data absensi
-        const rUsers = await apiGet({action:'getUsers', sheetId: SHEET_ID});
-        const today = new Date().toISOString().slice(0,10);
-        const rAbsen = await apiGet({action:'getAbsensiRange', sheetId: SHEET_ID, start: today, end: today});
-
-        if(rUsers && rUsers.success && rAbsen && rAbsen.success) {
+        const rUsers = await apiGet({action:'test', sheetId: SHEET_ID});
+        if(rUsers && rUsers.success) {
           el.className = "bg-emerald-100 text-emerald-900 pill px-3 py-1";
           el.innerHTML = "✅ Terhubung";
         } else {
-          throw new Error(rUsers.error || rAbsen.error || 'Respons server tidak valid');
+          throw new Error(rUsers.error || 'Respons server tidak valid');
         }
       } catch(e) {
         el.className = "bg-red-100 text-red-900 pill px-3 py-1";
-        el.innerHTML = "❌ Gagal terhubung: " + e.message;
+        el.innerHTML = `❌ Gagal terhubung: ${e.message}`;
       }
     }
 
