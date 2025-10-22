@@ -56,7 +56,7 @@
             <button type="button" onclick="togglePassword()" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">👁️</button>
           </div>
         </div>
-        <button class="btn btn-primary w-full">Masuk</button>
+        <button class="btn btn-primary w-full" type="submit">Masuk</button>
       </form>
       <div id="loginError" class="hidden mt-3 text-sm p-3 rounded-lg bg-red-50 text-red-700 border border-red-200"></div>
       <div class="mt-4 text-xs text-gray-500">
@@ -85,14 +85,14 @@
 
       <section id="content-dashboard" class="p-6">
         <div class="grid md:grid-cols-2 gap-6">
-  <div class="card p-5 ring-1 ring-black/5">
-    <h3 class="font-bold mb-3">📊 Grafik Kehadiran Siswa (Hari Ini)</h3>
-    <canvas id="chartKehadiranSiswa" height="140"></canvas>
-  </div>
-  <div class="card p-5 ring-1 ring-black/5">
-    <h3 class="font-bold mb-3">🧑‍🏫 Grafik Kehadiran Guru (akumulasi)</h3>
-    <canvas id="chartKehadiranGuru" height="140"></canvas>
-  </div>
+          <div class="card p-5 ring-1 ring-black/5">
+            <h3 class="font-bold mb-3">📊 Grafik Kehadiran Siswa (Hari Ini)</h3>
+            <canvas id="chartKehadiranSiswa" height="140"></canvas>
+          </div>
+          <div class="card p-5 ring-1 ring-black/5">
+            <h3 class="font-bold mb-3">🧑‍🏫 Grafik Kehadiran Guru (akumulasi)</h3>
+            <canvas id="chartKehadiranGuru" height="140"></canvas>
+          </div>
 
           <div class="card p-5 ring-1 ring-black/5">
             <h3 class="font-bold mb-3">📅 Statistik Hari Ini</h3>
@@ -229,14 +229,14 @@
 
       <section id="content-data" class="hidden p-6">
         <div class="grid md:grid-cols-2 gap-6">
-  <div class="card p-5 ring-1 ring-black/5">
-    <h3 class="font-bold mb-3">📊 Grafik Kehadiran Siswa (Hari Ini)</h3>
-    <canvas id="chartKehadiranSiswa" height="140"></canvas>
-  </div>
-  <div class="card p-5 ring-1 ring-black/5">
-    <h3 class="font-bold mb-3">🧑‍🏫 Grafik Kehadiran Guru (akumulasi)</h3>
-    <canvas id="chartKehadiranGuru" height="140"></canvas>
-  </div>
+          <div class="card p-5 ring-1 ring-black/5">
+            <h3 class="font-bold mb-3">📊 Grafik Kehadiran Siswa (Hari Ini)</h3>
+            <canvas id="chartKehadiranSiswa2" height="140"></canvas>
+          </div>
+          <div class="card p-5 ring-1 ring-black/5">
+            <h3 class="font-bold mb-3">🧑‍🏫 Grafik Kehadiran Guru (akumulasi)</h3>
+            <canvas id="chartKehadiranGuru2" height="140"></canvas>
+          </div>
 
           <div class="card p-4 ring-1 ring-black/5">
             <h3 class="font-bold mb-3">👨‍🎓 Data Siswa</h3>
@@ -330,7 +330,7 @@
   <script>
     // ===================== KONFIG =====================
     const SHEET_ID  = "1WJB2DCVjj1UbZhJ61VGztRc2BB75vJWrwgEbmadybdI";
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwYgo3dff1jnriotflRK8emFJZkFr6drTsAedKLkJOOcxDHRjS7-rjnIX_gS7DcaOS1TQ/exec"; 
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxYUocNKA0BmEPLkkC0ZEjX516JkoUXuSpif2uoZ7y2LlrS3quNwXCTCJKfUAsIIbAwmg/exec"; 
 
     document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('sheetShown').textContent = SHEET_ID;
@@ -353,7 +353,7 @@
     async function apiGet(params={}) {
       const url = new URL(SCRIPT_URL);
       Object.entries(params).forEach(([k,v]) => url.searchParams.append(k, v));
-      try { const res = await fetch(url.toString()); return await res.json(); }
+      try { const res = await fetch(url.toString(), { cache: "no-store" }); return await res.json(); }
       catch(e) { console.error("GET Error:", e); return {success:false, error:e.message}; }
     }
     async function apiPost(action, payload) {
@@ -365,7 +365,8 @@
           mode: 'cors',
           headers:{'Content-Type':'application/json'}, 
           body: JSON.stringify(body),
-          redirect: 'follow'
+          redirect: 'follow',
+          cache: 'no-store'
         });
         return await res.json();
       } catch(e) { console.error("POST Error:", e); return {success:false, error:`Koneksi ke server gagal: ${e.message}`}; }
@@ -447,7 +448,7 @@
       span.textContent = text;
       content.className = "px-4 py-2 rounded-lg text-white shadow-lg max-w-sm " + (type === 'error' ? 'bg-red-600' : (type==='loading' ? 'bg-yellow-600' : 'bg-emerald-600'));
       box.classList.remove('hidden');
-      setTimeout(() => box.classList.add('hidden'), 5000);
+      setTimeout(() => box.classList.add('hidden'), 4000);
     }
     
     function populateKelasDropdowns() {
@@ -519,12 +520,17 @@
       document.getElementById('todayIzin').textContent = sum('siswa','Izin');
       document.getElementById('todayAlpha').textContent = sum('siswa','Alpha');
       document.getElementById('todayBolos').textContent = sum('siswa','Bolos');
+
       const classes = [...new Set(allStudents.map(s => String(s.kelas||'').trim()).filter(Boolean))].sort();
       const container = document.getElementById('inputStatus');
       container.innerHTML = classes.map(k => {
         const has = allAbsensiData.some(x=> x.tanggal===today && x.jenisAbsensi==='siswa' && x.kelas==k);
-        return `<div class="flex justify-between items-center p-2 ${has?'bg-emerald-50 text-emerald-800':'bg-red-50 text-red-800'
-      // ----- Charts (Chart.js) -----
+        return `<div class="flex justify-between items-center p-2 ${has?'bg-emerald-50 text-emerald-800':'bg-red-50 text-red-800'} rounded"><span>Kelas ${k}</span><span class="text-xs">${has?'Sudah Input':'Belum Input'}</span></div>`;
+      }).join('') + (()=>{
+        const hasG = allAbsensiData.some(x=> x.tanggal===today && x.jenisAbsensi==='guru');
+        return `<div class="flex justify-between items-center p-2 ${hasG?'bg-emerald-50 text-emerald-800':'bg-red-50 text-red-800'} rounded"><span>Guru</span><span class="text-xs">${hasG?'Sudah Input':'Belum Input'}</span></div>`;
+      })();
+
       try{
         const ctxS = document.getElementById('chartKehadiranSiswa').getContext('2d');
         const sData = [
@@ -534,7 +540,6 @@
           parseInt(document.getElementById('todayAlpha').textContent||'0',10),
           parseInt(document.getElementById('todayBolos').textContent||'0',10),
         ];
-        // Destroy previous chart if exists
         if(window._chartS){ window._chartS.destroy(); }
         window._chartS = new Chart(ctxS, {
           type: 'bar',
@@ -552,12 +557,23 @@
           data: { labels:['Hadir','Sakit','Izin','Alpha'], datasets:[{ label:'Guru (akumulasi)', data:gData }] },
           options: { responsive:true, maintainAspectRatio:false }
         });
-      }catch(e){ /* ignore drawing errors */ }
-    } rounded"><span>Kelas ${k}</span><span class="text-xs">${has?'Sudah Input':'Belum Input'}</span></div>`;
-      }).join('') + (()=>{
-        const hasG = allAbsensiData.some(x=> x.tanggal===today && x.jenisAbsensi==='guru');
-        return `<div class="flex justify-between items-center p-2 ${hasG?'bg-emerald-50 text-emerald-800':'bg-red-50 text-red-800'} rounded"><span>Guru</span><span class="text-xs">${hasG?'Sudah Input':'Belum Input'}</span></div>`;
-      })();
+
+        const ctxS2 = document.getElementById('chartKehadiranSiswa2').getContext('2d');
+        if(window._chartS2){ window._chartS2.destroy(); }
+        window._chartS2 = new Chart(ctxS2, {
+          type: 'bar',
+          data: { labels:['Hadir','Sakit','Izin','Alpha','Bolos'], datasets:[{ label:'Siswa (hari ini)', data:sData }] },
+          options: { responsive:true, maintainAspectRatio:false }
+        });
+        const ctxG2 = document.getElementById('chartKehadiranGuru2').getContext('2d');
+        if(window._chartG2){ window._chartG2.destroy(); }
+        window._chartG2 = new Chart(ctxG2, {
+          type: 'pie',
+          data: { labels:['Hadir','Sakit','Izin','Alpha'], datasets:[{ label:'Guru (akumulasi)', data:gData }] },
+          options: { responsive:true, maintainAspectRatio:false }
+        });
+      }catch(e){}
+
       const tbodyS = document.getElementById('rekapSiswaTable');
       tbodyS.innerHTML = classes.map(k=>{
         const siswa = allStudents.filter(s => String(s.kelas||'').trim()==k);
@@ -620,7 +636,7 @@
           currentAbsensiData = savedState;
           toast('Memuat data yang belum tersimpan dari sesi Anda.');
       } else {
-          currentAbsensiData = list.map(x => ({ tanggal, kelas:(jenis==='siswa'?kelas:''), jenisAbsensi: jenis, nama:x.nama, identifier:x.identifier, status:'Hadir', savedBy: currentUser.username }));
+          currentAbsensiData = list.map(x => ({ tanggal, kelas:(jenis==='siswa'?kelas:''), jenisAbsensi: jenis, nama:x.nama, identifier:x.identifier, status:'Hadir', savedBy: currentUser?.username || '-' }));
       }
       
       document.getElementById('btnSemuaHadir').classList.remove('hidden');
@@ -662,7 +678,6 @@
       btn.disabled=true; btn.title='Hanya admin/piket yang dapat menyimpan.';
     }
 
-    
     async function saveAbsensi(){
       if(!currentAbsensiData || currentAbsensiData.length===0) return toast('Tidak ada data untuk disimpan.','error');
       const saveBtn = document.getElementById('saveAbsensiBtn');
@@ -675,9 +690,9 @@
         const r = await apiPost('saveAbsensi', payload);
         if(r && r.success){
           clearStateFromSession();
-          toast('✔️ Data berhasil dikirim!', 'success');
+          toast('✅ Data berhasil dikirim! Dashboard diperbarui.', 'success');
           await pullAbsensiForToday();
-          loadDashboard();
+          loadDashboard(); // Auto-refresh sekali setelah simpan
         } else {
           toast('❌ Gagal menyimpan: ' + (r && r.error ? r.error : 'Tidak ada respons dari server.'), 'error');
         }
@@ -687,19 +702,6 @@
         saveBtn.disabled = false;
         saveBtn.innerHTML = originalText;
       }
-    }
-    ;
-      const r = await apiPost('saveAbsensi', payload);
-      if(r && r.success){
-        clearStateFromSession();
-        toast('Absensi berhasil tersimpan.'); 
-        await pullAbsensiForToday(); 
-        loadDashboard(); 
-      } else {
-        toast('Gagal menyimpan: ' + (r.error || 'Tidak ada respons dari server.'), 'error');
-      }
-      saveBtn.disabled = false;
-      saveBtn.innerHTML = originalText;
     }
 
     // ===================== LAPORAN =====================
