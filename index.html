@@ -19,6 +19,7 @@
     .btn-primary{background:var(--primary);color:white}
     .btn-accent{background:var(--accent);color:#2a2000}
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body class="min-h-screen">
 
@@ -84,6 +85,15 @@
 
       <section id="content-dashboard" class="p-6">
         <div class="grid md:grid-cols-2 gap-6">
+  <div class="card p-5 ring-1 ring-black/5">
+    <h3 class="font-bold mb-3">📊 Grafik Kehadiran Siswa (Hari Ini)</h3>
+    <canvas id="chartKehadiranSiswa" height="140"></canvas>
+  </div>
+  <div class="card p-5 ring-1 ring-black/5">
+    <h3 class="font-bold mb-3">🧑‍🏫 Grafik Kehadiran Guru (akumulasi)</h3>
+    <canvas id="chartKehadiranGuru" height="140"></canvas>
+  </div>
+
           <div class="card p-5 ring-1 ring-black/5">
             <h3 class="font-bold mb-3">📅 Statistik Hari Ini</h3>
             <div class="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
@@ -219,6 +229,15 @@
 
       <section id="content-data" class="hidden p-6">
         <div class="grid md:grid-cols-2 gap-6">
+  <div class="card p-5 ring-1 ring-black/5">
+    <h3 class="font-bold mb-3">📊 Grafik Kehadiran Siswa (Hari Ini)</h3>
+    <canvas id="chartKehadiranSiswa" height="140"></canvas>
+  </div>
+  <div class="card p-5 ring-1 ring-black/5">
+    <h3 class="font-bold mb-3">🧑‍🏫 Grafik Kehadiran Guru (akumulasi)</h3>
+    <canvas id="chartKehadiranGuru" height="140"></canvas>
+  </div>
+
           <div class="card p-4 ring-1 ring-black/5">
             <h3 class="font-bold mb-3">👨‍🎓 Data Siswa</h3>
             <div id="dataSiswa" class="max-h-96 overflow-y-auto space-y-2 text-sm">
@@ -311,7 +330,7 @@
   <script>
     // ===================== KONFIG =====================
     const SHEET_ID  = "1WJB2DCVjj1UbZhJ61VGztRc2BB75vJWrwgEbmadybdI";
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx_A8hzk2mLqPiJ9aDKXWF5xgOpSjcGrFo-9OhqESihp5SMdV0PQvVMBfcWQB6q31YiaQ/exec"; 
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx7-obZkK6cb3I1Ik9IOCWLbI5uPe5OSINlthI3wwcg5P7-yufBDad3g2c4xKU67WGRzA/exec"; 
 
     document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('sheetShown').textContent = SHEET_ID;
@@ -426,7 +445,7 @@
       const content = document.getElementById('notificationContent');
       const span = document.getElementById('notificationText');
       span.textContent = text;
-      content.className = "px-4 py-2 rounded-lg text-white shadow-lg max-w-sm " + (type === 'error' ? 'bg-red-600' : 'bg-emerald-600');
+      content.className = "px-4 py-2 rounded-lg text-white shadow-lg max-w-sm " + (type === 'error' ? 'bg-red-600' : (type==='loading' ? 'bg-yellow-600' : 'bg-emerald-600'));
       box.classList.remove('hidden');
       setTimeout(() => box.classList.add('hidden'), 5000);
     }
@@ -504,7 +523,37 @@
       const container = document.getElementById('inputStatus');
       container.innerHTML = classes.map(k => {
         const has = allAbsensiData.some(x=> x.tanggal===today && x.jenisAbsensi==='siswa' && x.kelas==k);
-        return `<div class="flex justify-between items-center p-2 ${has?'bg-emerald-50 text-emerald-800':'bg-red-50 text-red-800'} rounded"><span>Kelas ${k}</span><span class="text-xs">${has?'Sudah Input':'Belum Input'}</span></div>`;
+        return `<div class="flex justify-between items-center p-2 ${has?'bg-emerald-50 text-emerald-800':'bg-red-50 text-red-800'
+      // ----- Charts (Chart.js) -----
+      try{
+        const ctxS = document.getElementById('chartKehadiranSiswa').getContext('2d');
+        const sData = [
+          parseInt(document.getElementById('todayHadir').textContent||'0',10),
+          parseInt(document.getElementById('todaySakit').textContent||'0',10),
+          parseInt(document.getElementById('todayIzin').textContent||'0',10),
+          parseInt(document.getElementById('todayAlpha').textContent||'0',10),
+          parseInt(document.getElementById('todayBolos').textContent||'0',10),
+        ];
+        // Destroy previous chart if exists
+        if(window._chartS){ window._chartS.destroy(); }
+        window._chartS = new Chart(ctxS, {
+          type: 'bar',
+          data: { labels:['Hadir','Sakit','Izin','Alpha','Bolos'], datasets:[{ label:'Siswa (hari ini)', data:sData }] },
+          options: { responsive:true, maintainAspectRatio:false }
+        });
+
+        const ctxG = document.getElementById('chartKehadiranGuru').getContext('2d');
+        const abGuru = allAbsensiData.filter(x=> x.jenisAbsensi==='guru');
+        const countG = st => abGuru.filter(x=>x.status===st).length;
+        const gData = [countG('Hadir'), countG('Sakit'), countG('Izin'), countG('Alpha')];
+        if(window._chartG){ window._chartG.destroy(); }
+        window._chartG = new Chart(ctxG, {
+          type: 'pie',
+          data: { labels:['Hadir','Sakit','Izin','Alpha'], datasets:[{ label:'Guru (akumulasi)', data:gData }] },
+          options: { responsive:true, maintainAspectRatio:false }
+        });
+      }catch(e){ /* ignore drawing errors */ }
+    } rounded"><span>Kelas ${k}</span><span class="text-xs">${has?'Sudah Input':'Belum Input'}</span></div>`;
       }).join('') + (()=>{
         const hasG = allAbsensiData.some(x=> x.tanggal===today && x.jenisAbsensi==='guru');
         return `<div class="flex justify-between items-center p-2 ${hasG?'bg-emerald-50 text-emerald-800':'bg-red-50 text-red-800'} rounded"><span>Guru</span><span class="text-xs">${hasG?'Sudah Input':'Belum Input'}</span></div>`;
@@ -613,13 +662,33 @@
       btn.disabled=true; btn.title='Hanya admin/piket yang dapat menyimpan.';
     }
 
+    
     async function saveAbsensi(){
       if(!currentAbsensiData || currentAbsensiData.length===0) return toast('Tidak ada data untuk disimpan.','error');
       const saveBtn = document.getElementById('saveAbsensiBtn');
       const originalText = saveBtn.innerHTML;
       saveBtn.disabled = true;
       saveBtn.innerHTML = '<span class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full spin"></span>&nbsp;Menyimpan...';
-      const payload = { sheetId: SHEET_ID, items: currentAbsensiData };
+      toast('📤 Mengirim data ke Google Sheet...', 'loading');
+      try {
+        const payload = { sheetId: SHEET_ID, items: currentAbsensiData };
+        const r = await apiPost('saveAbsensi', payload);
+        if(r && r.success){
+          clearStateFromSession();
+          toast('✔️ Data berhasil dikirim!', 'success');
+          await pullAbsensiForToday();
+          loadDashboard();
+        } else {
+          toast('❌ Gagal menyimpan: ' + (r && r.error ? r.error : 'Tidak ada respons dari server.'), 'error');
+        }
+      } catch(err){
+        toast('❌ Gagal menyimpan: ' + err.message, 'error');
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = originalText;
+      }
+    }
+    ;
       const r = await apiPost('saveAbsensi', payload);
       if(r && r.success){
         clearStateFromSession();
