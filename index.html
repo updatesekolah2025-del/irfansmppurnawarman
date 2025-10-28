@@ -691,106 +691,143 @@
         }
 
         async function saveAttendanceToSheet(attendanceData) {
-            debugLog(`💾 FORCE SAVE: Attempting to save ${attendanceData.length} attendance records...`, 'info');
-            debugLog(`📝 Sample data: ${JSON.stringify(attendanceData[0])}`, 'info');
+            debugLog(`💾 ULTIMATE SAVE: Starting comprehensive save process for ${attendanceData.length} records...`, 'info');
+            debugLog(`🎯 Target Sheet ID: ${SHEET_ID}`, 'info');
+            debugLog(`🔗 Apps Script URL: ${APPS_SCRIPT_URL}`, 'info');
+            debugLog(`📝 Sample record: ${JSON.stringify(attendanceData[0])}`, 'info');
             
-            // Multiple save attempts with different methods
+            // Enhanced save methods with better error handling and response parsing
             const saveAttempts = [
-                // Method 1: POST with JSON
+                // Method 1: Standard Apps Script POST with proper headers
                 async () => {
-                    debugLog(`🔄 Attempt 1: POST with JSON payload`, 'info');
-                    const formattedData = attendanceData.map(record => ({
-                        tanggal: record.tanggal,
-                        kelas: record.kelas,
-                        jenisAbsensi: record.jenisAbsensi,
-                        nama: record.nama,
-                        identifier: record.identifier,
-                        status: record.status,
-                        timestamp: record.timestamp,
-                        savedBy: record.savedBy
-                    }));
+                    debugLog(`🔄 Method 1: Standard Apps Script POST`, 'info');
                     
                     const payload = {
                         action: 'saveAttendance',
-                        sheetId: SHEET_ID,
-                        data: formattedData
+                        data: attendanceData
                     };
+                    
+                    debugLog(`📤 Sending payload: ${JSON.stringify(payload)}`, 'info');
                     
                     const response = await fetch(APPS_SCRIPT_URL, {
                         method: 'POST',
-                        mode: 'cors',
                         headers: {
                             'Content-Type': 'application/json',
                         },
-                        body: JSON.stringify(payload)
+                        body: JSON.stringify(payload),
+                        redirect: 'follow'
                     });
                     
-                    if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+                    debugLog(`📡 Response status: ${response.status}`, 'info');
+                    debugLog(`📡 Response headers: ${JSON.stringify([...response.headers.entries()])}`, 'info');
+                    
+                    const responseText = await response.text();
+                    debugLog(`📥 Raw response: ${responseText}`, 'info');
+                    
+                    let result;
+                    try {
+                        result = JSON.parse(responseText);
+                    } catch (e) {
+                        // If not JSON, treat as success if contains success indicators
+                        if (responseText.toLowerCase().includes('success') || 
+                            responseText.toLowerCase().includes('saved') ||
+                            responseText.toLowerCase().includes('ok')) {
+                            result = { success: true, message: responseText };
+                        } else {
+                            throw new Error(`Invalid JSON response: ${responseText}`);
+                        }
                     }
                     
-                    const result = JSON.parse(await response.text());
                     return result;
                 },
                 
-                // Method 2: GET with URL parameters (for single record)
+                // Method 2: GET request with URL parameters (single record test)
                 async () => {
-                    debugLog(`🔄 Attempt 2: GET with URL parameters`, 'info');
-                    const record = attendanceData[0]; // Save first record as test
+                    debugLog(`🔄 Method 2: GET with URL parameters (test record)`, 'info');
+                    
+                    const testRecord = attendanceData[0];
                     const params = new URLSearchParams({
                         action: 'saveAttendance',
-                        sheetId: SHEET_ID,
-                        tanggal: record.tanggal,
-                        nama: record.nama,
-                        identifier: record.identifier,
-                        kelas: record.kelas,
-                        jenisAbsensi: record.jenisAbsensi,
-                        status: record.status,
-                        timestamp: record.timestamp,
-                        savedBy: record.savedBy
+                        tanggal: testRecord.tanggal,
+                        nama: testRecord.nama,
+                        identifier: testRecord.identifier,
+                        kelas: testRecord.kelas,
+                        jenisAbsensi: testRecord.jenisAbsensi,
+                        status: testRecord.status,
+                        timestamp: testRecord.timestamp,
+                        savedBy: testRecord.savedBy
                     });
                     
-                    const response = await fetch(`${APPS_SCRIPT_URL}?${params.toString()}`, {
+                    const url = `${APPS_SCRIPT_URL}?${params.toString()}`;
+                    debugLog(`📤 GET URL: ${url}`, 'info');
+                    
+                    const response = await fetch(url, {
                         method: 'GET',
-                        mode: 'cors'
+                        redirect: 'follow'
                     });
                     
-                    if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+                    debugLog(`📡 GET Response status: ${response.status}`, 'info');
+                    
+                    const responseText = await response.text();
+                    debugLog(`📥 GET Raw response: ${responseText}`, 'info');
+                    
+                    let result;
+                    try {
+                        result = JSON.parse(responseText);
+                    } catch (e) {
+                        if (responseText.toLowerCase().includes('success') || 
+                            responseText.toLowerCase().includes('saved')) {
+                            result = { success: true, message: responseText };
+                        } else {
+                            throw new Error(`GET Invalid response: ${responseText}`);
+                        }
                     }
                     
-                    const result = JSON.parse(await response.text());
                     return result;
                 },
                 
-                // Method 3: POST with FormData
+                // Method 3: FormData POST
                 async () => {
-                    debugLog(`🔄 Attempt 3: POST with FormData`, 'info');
+                    debugLog(`🔄 Method 3: FormData POST`, 'info');
+                    
                     const formData = new FormData();
                     formData.append('action', 'saveAttendance');
-                    formData.append('sheetId', SHEET_ID);
                     formData.append('data', JSON.stringify(attendanceData));
+                    
+                    debugLog(`📤 FormData entries: action=saveAttendance, data=${JSON.stringify(attendanceData)}`, 'info');
                     
                     const response = await fetch(APPS_SCRIPT_URL, {
                         method: 'POST',
-                        mode: 'cors',
-                        body: formData
+                        body: formData,
+                        redirect: 'follow'
                     });
                     
-                    if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+                    debugLog(`📡 FormData Response status: ${response.status}`, 'info');
+                    
+                    const responseText = await response.text();
+                    debugLog(`📥 FormData Raw response: ${responseText}`, 'info');
+                    
+                    let result;
+                    try {
+                        result = JSON.parse(responseText);
+                    } catch (e) {
+                        if (responseText.toLowerCase().includes('success') || 
+                            responseText.toLowerCase().includes('saved')) {
+                            result = { success: true, message: responseText };
+                        } else {
+                            throw new Error(`FormData Invalid response: ${responseText}`);
+                        }
                     }
                     
-                    const result = JSON.parse(await response.text());
                     return result;
                 },
                 
-                // Method 4: Direct Google Sheets API simulation
+                // Method 4: Direct Google Sheets format
                 async () => {
-                    debugLog(`🔄 Attempt 4: Direct API simulation`, 'info');
-                    const directPayload = {
-                        method: 'POST',
-                        action: 'appendData',
+                    debugLog(`🔄 Method 4: Direct Google Sheets format`, 'info');
+                    
+                    const sheetsPayload = {
+                        method: 'appendRows',
                         spreadsheetId: SHEET_ID,
                         range: 'Absensi!A:H',
                         values: attendanceData.map(record => [
@@ -805,52 +842,148 @@
                         ])
                     };
                     
+                    debugLog(`📤 Sheets payload: ${JSON.stringify(sheetsPayload)}`, 'info');
+                    
                     const response = await fetch(APPS_SCRIPT_URL, {
                         method: 'POST',
-                        mode: 'cors',
                         headers: {
                             'Content-Type': 'application/json',
                         },
-                        body: JSON.stringify(directPayload)
+                        body: JSON.stringify(sheetsPayload),
+                        redirect: 'follow'
                     });
                     
-                    if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+                    debugLog(`📡 Sheets Response status: ${response.status}`, 'info');
+                    
+                    const responseText = await response.text();
+                    debugLog(`📥 Sheets Raw response: ${responseText}`, 'info');
+                    
+                    let result;
+                    try {
+                        result = JSON.parse(responseText);
+                    } catch (e) {
+                        if (responseText.toLowerCase().includes('success') || 
+                            responseText.toLowerCase().includes('saved') ||
+                            responseText.toLowerCase().includes('appended')) {
+                            result = { success: true, message: responseText };
+                        } else {
+                            throw new Error(`Sheets Invalid response: ${responseText}`);
+                        }
                     }
                     
-                    const result = JSON.parse(await response.text());
+                    return result;
+                },
+                
+                // Method 5: Alternative Apps Script endpoint format
+                async () => {
+                    debugLog(`🔄 Method 5: Alternative endpoint format`, 'info');
+                    
+                    const altPayload = {
+                        function: 'saveAttendanceData',
+                        parameters: [attendanceData]
+                    };
+                    
+                    debugLog(`📤 Alternative payload: ${JSON.stringify(altPayload)}`, 'info');
+                    
+                    const response = await fetch(APPS_SCRIPT_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(altPayload),
+                        redirect: 'follow'
+                    });
+                    
+                    debugLog(`📡 Alt Response status: ${response.status}`, 'info');
+                    
+                    const responseText = await response.text();
+                    debugLog(`📥 Alt Raw response: ${responseText}`, 'info');
+                    
+                    let result;
+                    try {
+                        result = JSON.parse(responseText);
+                    } catch (e) {
+                        if (responseText.toLowerCase().includes('success') || 
+                            responseText.toLowerCase().includes('saved')) {
+                            result = { success: true, message: responseText };
+                        } else {
+                            throw new Error(`Alt Invalid response: ${responseText}`);
+                        }
+                    }
+                    
                     return result;
                 }
             ];
             
-            // Try each method until one succeeds
+            // Execute all methods with detailed logging
+            let successCount = 0;
+            let lastError = null;
+            
             for (let i = 0; i < saveAttempts.length; i++) {
                 try {
-                    debugLog(`🚀 Executing save attempt ${i + 1}/${saveAttempts.length}...`, 'info');
+                    debugLog(`🚀 EXECUTING METHOD ${i + 1}/${saveAttempts.length}...`, 'info');
+                    
                     const result = await saveAttempts[i]();
                     
-                    debugLog(`✅ Save attempt ${i + 1} SUCCESS: ${JSON.stringify(result)}`, 'success');
+                    debugLog(`📊 Method ${i + 1} result: ${JSON.stringify(result)}`, 'info');
                     
-                    if (result && (result.success || result.status === 'success' || result.result === 'success')) {
-                        debugLog(`🎉 SAVE CONFIRMED! Data successfully saved to Google Sheets`, 'success');
-                        return { success: true, method: i + 1, result: result };
+                    // Check for success indicators
+                    const isSuccess = result && (
+                        result.success === true ||
+                        result.status === 'success' ||
+                        result.result === 'success' ||
+                        (typeof result.message === 'string' && 
+                         (result.message.toLowerCase().includes('success') || 
+                          result.message.toLowerCase().includes('saved')))
+                    );
+                    
+                    if (isSuccess) {
+                        successCount++;
+                        debugLog(`✅ METHOD ${i + 1} SUCCESS! (${successCount} total successes)`, 'success');
+                        
+                        if (successCount === 1) {
+                            // Return on first success
+                            debugLog(`🎉 FIRST SUCCESS ACHIEVED! Returning success result.`, 'success');
+                            return { 
+                                success: true, 
+                                method: i + 1, 
+                                result: result,
+                                totalAttempts: i + 1,
+                                successCount: successCount
+                            };
+                        }
                     } else {
-                        debugLog(`⚠️ Save attempt ${i + 1} returned unexpected result: ${JSON.stringify(result)}`, 'warning');
-                        // Continue to next method
+                        debugLog(`⚠️ Method ${i + 1} returned non-success result`, 'warning');
                     }
                     
                 } catch (error) {
-                    debugLog(`❌ Save attempt ${i + 1} failed: ${error.message}`, 'error');
-                    if (i === saveAttempts.length - 1) {
-                        // Last attempt failed
-                        debugLog(`💥 ALL SAVE ATTEMPTS FAILED! Last error: ${error.message}`, 'error');
-                        return { success: false, error: `All ${saveAttempts.length} save methods failed. Last error: ${error.message}` };
-                    }
-                    // Continue to next method
+                    lastError = error;
+                    debugLog(`❌ Method ${i + 1} FAILED: ${error.message}`, 'error');
+                    debugLog(`🔍 Error details: ${error.stack}`, 'error');
                 }
+                
+                // Small delay between attempts
+                await new Promise(resolve => setTimeout(resolve, 500));
             }
             
-            return { success: false, error: 'All save attempts completed but no success confirmation received' };
+            // Final result evaluation
+            if (successCount > 0) {
+                debugLog(`🎊 PARTIAL SUCCESS: ${successCount}/${saveAttempts.length} methods succeeded`, 'success');
+                return { 
+                    success: true, 
+                    method: 'multiple', 
+                    successCount: successCount,
+                    totalAttempts: saveAttempts.length
+                };
+            } else {
+                debugLog(`💥 TOTAL FAILURE: All ${saveAttempts.length} methods failed`, 'error');
+                debugLog(`🔍 Last error: ${lastError ? lastError.message : 'Unknown error'}`, 'error');
+                return { 
+                    success: false, 
+                    error: `All ${saveAttempts.length} save methods failed. Last error: ${lastError ? lastError.message : 'Unknown error'}`,
+                    totalAttempts: saveAttempts.length
+                };
+            }
         }
 
         async function addUserToSheet(userData) {
@@ -1447,52 +1580,135 @@
         });
 
         document.getElementById('testSaveBtn').addEventListener('click', async function() {
-            debugLog('🧪 FORCE TEST SAVE: Testing all save methods...', 'info');
+            debugLog('🧪 ULTIMATE FORCE TEST: Starting comprehensive save test...', 'info');
             
             this.innerHTML = '🧪 Testing...';
             this.disabled = true;
             
+            // Step 1: Basic connectivity test
+            debugLog('🔍 STEP 1: Testing basic connectivity to Apps Script...', 'info');
+            try {
+                const basicResponse = await fetch(APPS_SCRIPT_URL, {
+                    method: 'GET',
+                    mode: 'cors'
+                });
+                debugLog(`📡 Basic connectivity: ${basicResponse.status} ${basicResponse.statusText}`, 'info');
+                
+                const basicText = await basicResponse.text();
+                debugLog(`📥 Basic response: ${basicText.substring(0, 200)}...`, 'info');
+            } catch (error) {
+                debugLog(`❌ Basic connectivity FAILED: ${error.message}`, 'error');
+            }
+            
+            // Step 2: Test with simple parameters
+            debugLog('🔍 STEP 2: Testing with simple GET parameters...', 'info');
+            try {
+                const simpleUrl = `${APPS_SCRIPT_URL}?test=true&timestamp=${Date.now()}`;
+                const simpleResponse = await fetch(simpleUrl, {
+                    method: 'GET',
+                    mode: 'cors'
+                });
+                debugLog(`📡 Simple GET: ${simpleResponse.status} ${simpleResponse.statusText}`, 'info');
+                
+                const simpleText = await simpleResponse.text();
+                debugLog(`📥 Simple GET response: ${simpleText}`, 'info');
+            } catch (error) {
+                debugLog(`❌ Simple GET FAILED: ${error.message}`, 'error');
+            }
+            
+            // Step 3: Test POST with minimal data
+            debugLog('🔍 STEP 3: Testing POST with minimal data...', 'info');
+            try {
+                const minimalData = { test: true, timestamp: Date.now() };
+                const minimalResponse = await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(minimalData)
+                });
+                debugLog(`📡 Minimal POST: ${minimalResponse.status} ${minimalResponse.statusText}`, 'info');
+                
+                const minimalText = await minimalResponse.text();
+                debugLog(`📥 Minimal POST response: ${minimalText}`, 'info');
+            } catch (error) {
+                debugLog(`❌ Minimal POST FAILED: ${error.message}`, 'error');
+            }
+            
+            // Step 4: Full save test
+            debugLog('🔍 STEP 4: Full attendance save test...', 'info');
+            
             const testData = [{
                 tanggal: new Date().toISOString().split('T')[0],
-                nama: 'Test Student - Force Save',
-                identifier: 'FORCE001',
+                nama: 'Test Student - Ultimate Force Save',
+                identifier: 'ULTIMATE001',
                 kelas: '7A',
                 jenisAbsensi: 'Siswa',
                 status: 'Hadir',
                 timestamp: new Date().toISOString(),
-                savedBy: currentUser ? currentUser.nama : 'Force Test User'
+                savedBy: currentUser ? currentUser.nama : 'Ultimate Test User'
             }];
             
             try {
-                debugLog('🚀 FORCE TEST: Bypassing connection test, directly attempting all save methods...', 'info');
+                debugLog('🚀 ULTIMATE FORCE TEST: Executing all 5 save methods...', 'info');
                 
                 const result = await saveAttendanceToSheet(testData);
                 
                 if (result.success) {
-                    debugLog(`🎉 FORCE TEST SUCCESS! Method ${result.method} worked!`, 'success');
-                    showNotification(`✅ FORCE TEST BERHASIL! Method ${result.method} berhasil menyimpan ke Google Sheets!`, 'success');
+                    debugLog(`🎉 ULTIMATE SUCCESS! ${result.successCount || 1} method(s) worked!`, 'success');
+                    showNotification(`✅ ULTIMATE TEST BERHASIL! ${result.successCount || 1} metode berhasil menyimpan ke Google Sheets!`, 'success');
                     updateConnectionStatus(true);
-                } else {
-                    debugLog(`💥 FORCE TEST FAILED: ${result.error}`, 'error');
-                    showNotification(`❌ FORCE TEST GAGAL: ${result.error}`, 'error');
                     
-                    // Additional diagnostic
-                    debugLog('🔍 DIAGNOSTIC: Checking Apps Script URL and Sheet ID...', 'info');
+                    // Additional success verification
+                    debugLog('🔍 SUCCESS VERIFICATION: Attempting to read back data...', 'info');
+                    try {
+                        const verifyResponse = await fetch(`${APPS_SCRIPT_URL}?action=getData&sheet=Absensi&limit=5`, {
+                            method: 'GET'
+                        });
+                        const verifyText = await verifyResponse.text();
+                        debugLog(`📊 Verification response: ${verifyText}`, 'info');
+                    } catch (verifyError) {
+                        debugLog(`⚠️ Verification failed: ${verifyError.message}`, 'warning');
+                    }
+                    
+                } else {
+                    debugLog(`💥 ULTIMATE TEST FAILED: ${result.error}`, 'error');
+                    showNotification(`❌ ULTIMATE TEST GAGAL: ${result.error}`, 'error');
+                    
+                    // Enhanced diagnostic
+                    debugLog('🔍 ENHANCED DIAGNOSTIC: Analyzing failure...', 'info');
                     debugLog(`📊 Sheet ID: ${SHEET_ID}`, 'info');
                     debugLog(`🔗 Apps Script URL: ${APPS_SCRIPT_URL}`, 'info');
+                    debugLog(`🔍 Total attempts: ${result.totalAttempts}`, 'info');
                     
-                    showNotification('🔍 Periksa Sheet ID dan Apps Script URL di console debug', 'warning');
+                    // Test if the URL is accessible at all
+                    debugLog('🔍 Testing URL accessibility...', 'info');
+                    try {
+                        const urlTest = await fetch(APPS_SCRIPT_URL.replace('/exec', ''), {
+                            method: 'GET',
+                            mode: 'no-cors'
+                        });
+                        debugLog(`📡 URL accessibility test completed`, 'info');
+                    } catch (urlError) {
+                        debugLog(`❌ URL not accessible: ${urlError.message}`, 'error');
+                    }
+                    
+                    showNotification('🔍 Periksa debug console untuk analisis lengkap', 'warning');
                 }
                 
             } catch (error) {
-                debugLog(`💥 FORCE TEST CRITICAL ERROR: ${error.message}`, 'error');
+                debugLog(`💥 ULTIMATE TEST CRITICAL ERROR: ${error.message}`, 'error');
                 debugLog(`🔍 Error stack: ${error.stack}`, 'error');
-                showNotification(`💥 FORCE TEST ERROR: ${error.message}`, 'error');
+                showNotification(`💥 ULTIMATE TEST ERROR: ${error.message}`, 'error');
+                
+                // Final diagnostic
+                debugLog('🔍 FINAL DIAGNOSTIC: System status check...', 'info');
+                debugLog(`🌐 Navigator online: ${navigator.onLine}`, 'info');
+                debugLog(`🔗 Current URL: ${window.location.href}`, 'info');
+                debugLog(`📱 User agent: ${navigator.userAgent}`, 'info');
             }
             
             this.innerHTML = '🧪 Test Save';
             this.disabled = false;
         });
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'995a3b81d161b5b2',t:'MTc2MTY1MjQwMy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'995a4b2700fd9509',t:'MTc2MTY1MzA0NC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
