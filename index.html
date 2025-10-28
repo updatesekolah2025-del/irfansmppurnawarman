@@ -1,2054 +1,637 @@
 <!DOCTYPE html>
 <html lang="id" class="h-full">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistem Absensi Digital SMP Purnawarman</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        body {
-            box-sizing: border-box;
-            font-family: 'Inter', sans-serif;
-        }
-        .gradient-bg {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-        .card-shadow {
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        }
-        .loading-spinner {
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-        .fade-in {
-            animation: fadeIn 0.5s ease-in;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .tab-active {
-            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
-            color: white;
-        }
-        .status-connected {
-            background: linear-gradient(90deg, #10b981, #059669);
-        }
-        .status-offline {
-            background: linear-gradient(90deg, #f59e0b, #d97706);
-        }
-        .notification {
-            position: fixed;
-            top: 1rem;
-            right: 1rem;
-            z-index: 1000;
-            transform: translateX(100%);
-            transition: transform 0.3s ease;
-        }
-        .notification.show {
-            transform: translateX(0);
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sistem Absensi Digital SMP PURNAWARMAN — Super Final</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { box-sizing: border-box; font-family: 'Inter', sans-serif; }
+    .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    .card-shadow { box-shadow: 0 4px 6px -1px rgba(0,0,0,.1), 0 2px 4px -1px rgba(0,0,0,.06); }
+    .loading-spinner { animation: spin 1s linear infinite; }
+    @keyframes spin { from {transform:rotate(0)} to {transform:rotate(360deg)} }
+    .fade-in { animation: fadeIn .4s ease-in; }
+    @keyframes fadeIn { from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:translateY(0)} }
+    .tab-active { background: linear-gradient(135deg, #3b82f6, #8b5cf6); color: white; }
+    .status-connected { background: linear-gradient(90deg,#10b981,#059669); }
+    .status-offline { background: linear-gradient(90deg,#f59e0b,#d97706); }
+    .notification { position: fixed; top:1rem; right:1rem; z-index: 1000; transform: translateX(120%); transition: transform .25s; }
+    .notification.show { transform: translateX(0);}
+  </style>
 </head>
 <body class="h-full bg-gray-50">
-    <!-- Login Section -->
-    <div id="loginSection" class="min-h-full flex items-center justify-center gradient-bg px-4 sm:px-6 lg:px-8">
-        <div class="max-w-md w-full space-y-8">
-            <div class="text-center">
-                <h1 class="text-4xl font-bold text-white mb-2">🏫 ABSENSI SMP PURNAWARMAN</h1>
-                <p class="text-blue-100 text-sm">Sistem Absensi Digital Terintegrasi Google Sheets</p>
-            </div>
-            <div class="bg-white rounded-xl shadow-2xl p-8 card-shadow">
-                <div class="mb-4 p-3 bg-blue-50 rounded-lg">
-                    <p class="text-sm text-blue-700 font-medium">🔑 Kredensial Login (Demo Mode):</p>
-                    <div class="mt-2 space-y-1 text-xs text-blue-600">
-                        <p><strong>Admin:</strong> admin / admin123</p>
-                        <p><strong>Guru:</strong> guru1 / guru123</p>
-                        <p><strong>Piket:</strong> piket / piket123</p>
-                        <p><strong>Guru 2:</strong> guru2 / guru456</p>
-                    </div>
-                    <div class="mt-2 p-2 bg-yellow-100 rounded text-xs text-yellow-700">
-                        💡 <strong>Tips:</strong> Buka Console (F12) untuk melihat debug info login
-                    </div>
-                </div>
-                <form id="loginForm" class="space-y-6">
-                    <div>
-                        <label for="username" class="block text-sm font-medium text-gray-700 mb-2">Username</label>
-                        <input id="username" type="text" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Masukkan username" value="admin">
-                    </div>
-                    <div>
-                        <label for="password" class="block text-sm font-medium text-gray-700 mb-2">Password</label>
-                        <div class="relative">
-                            <input id="password" type="password" required class="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Masukkan password" value="admin123">
-                            <button type="button" id="togglePassword" class="absolute inset-y-0 right-0 pr-3 flex items-center">
-                                <span class="text-gray-400 hover:text-gray-600">👁️</span>
-                            </button>
-                        </div>
-                    </div>
-                    <div id="loginError" class="hidden bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-                        ❌ Username atau password salah!
-                    </div>
-                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition duration-200 flex items-center justify-center">
-                        🚪 Masuk
-                    </button>
-                </form>
-            </div>
+
+<!-- ===== Login ===== -->
+<div id="loginSection" class="min-h-full flex items-center justify-center gradient-bg px-4 sm:px-6 lg:px-8">
+  <div class="max-w-md w-full space-y-6 py-10">
+    <div class="text-center">
+      <h1 class="text-4xl font-bold text-white mb-2">🏫 ABSENSI SMP PURNAWARMAN</h1>
+      <p class="text-blue-100 text-sm">Sistem Absensi Digital Terintegrasi Google Sheets</p>
+    </div>
+    <div class="bg-white rounded-xl shadow-2xl p-8 card-shadow">
+      <div class="mb-4 p-3 bg-blue-50 rounded-lg">
+        <p class="text-sm text-blue-700 font-medium">🔑 Kredensial Login (Demo Mode):</p>
+        <div class="mt-2 space-y-1 text-xs text-blue-600">
+          <p><strong>Admin:</strong> admin / admin123</p>
+          <p><strong>Guru:</strong> guru1 / guru123</p>
+          <p><strong>Piket:</strong> piket / piket123</p>
+          <p><strong>Guru 2:</strong> guru2 / guru456</p>
         </div>
+        <div class="mt-2 p-2 bg-yellow-100 rounded text-xs text-yellow-700">
+          💡 <strong>Tips:</strong> Buka Console (F12) untuk melihat debug info login
+        </div>
+      </div>
+      <form id="loginForm" class="space-y-6">
+        <div>
+          <label for="username" class="block text-sm font-medium text-gray-700 mb-2">Username</label>
+          <input id="username" type="text" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Masukkan username" value="admin">
+        </div>
+        <div>
+          <label for="password" class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+          <div class="relative">
+            <input id="password" type="password" required class="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Masukkan password" value="admin123">
+            <button type="button" id="togglePassword" class="absolute inset-y-0 right-0 pr-3 flex items-center">
+              <span class="text-gray-400 hover:text-gray-600">👁️</span>
+            </button>
+          </div>
+        </div>
+        <div id="loginError" class="hidden bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+          ❌ Username atau password salah!
+        </div>
+        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition duration-200 flex items-center justify-center">
+          🚪 Masuk
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Main App ===== -->
+<div id="dashboardSection" class="hidden min-h-full bg-gray-50">
+  <!-- Header -->
+  <header class="bg-white shadow-sm border-b border-gray-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between items-center py-4">
+        <div class="flex items-center space-x-4">
+          <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+            <span class="text-white font-bold">📚</span>
+          </div>
+          <div>
+            <h1 class="text-xl font-semibold text-gray-900">Sistem Absensi Sekolah SMP PURNAWARMAN</h1>
+            <p id="currentTime" class="text-sm text-gray-500"></p>
+          </div>
+        </div>
+        <div class="flex items-center space-x-4">
+          <div id="connectionStatus" class="px-3 py-1 rounded-full text-white text-xs font-medium status-offline">
+            📱 Mode Demo - Offline
+          </div>
+          <div class="flex items-center space-x-2">
+            <span id="userDisplay" class="text-sm text-gray-700">Admin User</span>
+            <button id="logoutBtn" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg text-sm transition duration-200">
+              🚪 Keluar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Tabs -->
+  <nav class="bg-white border-b border-gray-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex space-x-8">
+        <button class="tab-btn tab-active px-4 py-3 text-sm font-medium rounded-t-lg transition duration-200" data-tab="dashboard">📊 Dashboard</button>
+        <button class="tab-btn px-4 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 rounded-t-lg transition duration-200" data-tab="absensi">✅ Absensi</button>
+        <button class="tab-btn px-4 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 rounded-t-lg transition duration-200" data-tab="laporan">📈 Laporan</button>
+        <button class="tab-btn px-4 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 rounded-t-lg transition duration-200" data-tab="data">👥 Data</button>
+        <button class="tab-btn px-4 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 rounded-t-lg transition duration-200" data-tab="setup">⚙️ Setup</button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Content -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Dashboard Tab -->
+    <div id="dashboardTab" class="tab-content fade-in">
+      <!-- Statistics Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
+        <div class="bg-white rounded-xl p-6 card-shadow">
+          <div class="flex items-center"><div class="p-2 bg-green-100 rounded-lg"><span class="text-green-600 text-xl">✅</span></div>
+          <div class="ml-4"><p class="text-sm font-medium text-gray-600">Hadir</p><p class="text-2xl font-bold text-green-600" id="statHadir">0</p></div></div>
+        </div>
+        <div class="bg-white rounded-xl p-6 card-shadow">
+          <div class="flex items-center"><div class="p-2 bg-yellow-100 rounded-lg"><span class="text-yellow-600 text-xl">🤒</span></div>
+          <div class="ml-4"><p class="text-sm font-medium text-gray-600">Sakit</p><p class="text-2xl font-bold text-yellow-600" id="statSakit">0</p></div></div>
+        </div>
+        <div class="bg-white rounded-xl p-6 card-shadow">
+          <div class="flex items-center"><div class="p-2 bg-blue-100 rounded-lg"><span class="text-blue-600 text-xl">📝</span></div>
+          <div class="ml-4"><p class="text-sm font-medium text-gray-600">Izin</p><p class="text-2xl font-bold text-blue-600" id="statIzin">0</p></div></div>
+        </div>
+        <div class="bg-white rounded-xl p-6 card-shadow">
+          <div class="flex items-center"><div class="p-2 bg-red-100 rounded-lg"><span class="text-red-600 text-xl">❌</span></div>
+          <div class="ml-4"><p class="text-sm font-medium text-gray-600">Alpha</p><p class="text-2xl font-bold text-red-600" id="statAlpha">0</p></div></div>
+        </div>
+        <div class="bg-white rounded-xl p-6 card-shadow">
+          <div class="flex items-center"><div class="p-2 bg-purple-100 rounded-lg"><span class="text-purple-600 text-xl">🏃</span></div>
+          <div class="ml-4"><p class="text-sm font-medium text-gray-600">Bolos</p><p class="text-2xl font-bold text-purple-600" id="statBolos">0</p></div></div>
+        </div>
+      </div>
+
+      <!-- Class Status -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        <div class="bg-white rounded-xl p-6 card-shadow">
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">Status Input Absensi Hari Ini</h3>
+          <div class="grid grid-cols-3 gap-3" id="classStatusGrid">
+            <div class="flex items-center justify-between p-3 bg-green-50 rounded-lg"><span class="text-sm font-medium">Kelas 7A</span><span class="text-green-600 text-xs">✅ Sudah Input</span></div>
+            <div class="flex items-center justify-between p-3 bg-green-50 rounded-lg"><span class="text-sm font-medium">Kelas 7B</span><span class="text-green-600 text-xs">✅ Sudah Input</span></div>
+            <div class="flex items-center justify-between p-3 bg-red-50 rounded-lg"><span class="text-sm font-medium">Kelas 7C</span><span class="text-red-600 text-xs">❌ Belum Input</span></div>
+            <div class="flex items-center justify-between p-3 bg-green-50 rounded-lg"><span class="text-sm font-medium">Kelas 8A</span><span class="text-green-600 text-xs">✅ Sudah Input</span></div>
+            <div class="flex items-center justify-between p-3 bg-red-50 rounded-lg"><span class="text-sm font-medium">Kelas 8B</span><span class="text-red-600 text-xs">❌ Belum Input</span></div>
+            <div class="flex items-center justify-between p-3 bg-green-50 rounded-lg"><span class="text-sm font-medium">Kelas 9A</span><span class="text-green-600 text-xs">✅ Sudah Input</span></div>
+          </div>
+        </div>
+        <div class="bg-white rounded-xl p-6 card-shadow">
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">Statistik Guru Hari Ini</h3>
+          <div class="space-y-3">
+            <div class="flex justify-between items-center"><span class="text-sm text-gray-600">Total Guru Hadir</span><span class="font-semibold text-green-600" id="guruHadir">0</span></div>
+            <div class="flex justify-between items-center"><span class="text-sm text-gray-600">Izin</span><span class="font-semibold text-blue-600" id="guruIzin">0</span></div>
+            <div class="flex justify-between items-center"><span class="text-sm text-gray-600">Sakit</span><span class="font-semibold text-yellow-600" id="guruSakit">0</span></div>
+            <div class="flex justify-between items-center"><span class="text-sm text-gray-600">Alpha</span><span class="font-semibold text-red-600" id="guruAlpha">0</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Activity -->
+      <div class="bg-white rounded-xl p-6 card-shadow">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Aktivitas Terbaru</h3>
+        <div class="space-y-3" id="recentActivity">
+          <div class="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+            <span class="text-green-600">✅</span>
+            <div class="flex-1">
+              <p class="text-sm font-medium">Sistem siap digunakan</p>
+              <p class="text-xs text-gray-500">Baru saja</p>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <!-- Dashboard Main -->
-    <div id="dashboardSection" class="hidden min-h-full bg-gray-50">
-        <!-- Header -->
-        <header class="bg-white shadow-sm border-b border-gray-200">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="flex justify-between items-center py-4">
-                    <div class="flex items-center space-x-4">
-                        <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                            <span class="text-white font-bold">📚</span>
-                        </div>
-                        <div>
-                            <h1 class="text-xl font-semibold text-gray-900">Sistem Absensi Sekolah SMP PURNAWARMAN</h1>
-                            <p id="currentTime" class="text-sm text-gray-500"></p>
-                        </div>
-                    </div>
-                    <div class="flex items-center space-x-4">
-                        <div id="connectionStatus" class="px-3 py-1 rounded-full text-white text-xs font-medium status-offline">
-                            📱 Mode Demo - Offline
-                        </div>
-                        <div class="flex items-center space-x-2">
-                            <span id="userDisplay" class="text-sm text-gray-700">Admin User</span>
-                            <button id="logoutBtn" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg text-sm transition duration-200">
-                                🚪 Keluar
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </header>
-
-        <!-- Navigation Tabs -->
-        <nav class="bg-white border-b border-gray-200">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="flex space-x-8">
-                    <button class="tab-btn tab-active px-4 py-3 text-sm font-medium rounded-t-lg transition duration-200" data-tab="dashboard">
-                        📊 Dashboard
-                    </button>
-                    <button class="tab-btn px-4 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 rounded-t-lg transition duration-200" data-tab="absensi">
-                        ✅ Absensi
-                    </button>
-                    <button class="tab-btn px-4 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 rounded-t-lg transition duration-200" data-tab="laporan">
-                        📈 Laporan
-                    </button>
-                    <button class="tab-btn px-4 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 rounded-t-lg transition duration-200" data-tab="data">
-                        👥 Data
-                    </button>
-                    <button class="tab-btn px-4 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 rounded-t-lg transition duration-200" data-tab="setup">
-                        ⚙️ Setup
-                    </button>
-                </div>
-            </div>
-        </nav>
-
-        <!-- Content Area -->
-        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <!-- Dashboard Tab -->
-            <div id="dashboardTab" class="tab-content fade-in">
-                <!-- Statistics Cards -->
-                <div class="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
-                    <div class="bg-white rounded-xl p-6 card-shadow">
-                        <div class="flex items-center">
-                            <div class="p-2 bg-green-100 rounded-lg">
-                                <span class="text-green-600 text-xl">✅</span>
-                            </div>
-                            <div class="ml-4">
-                                <p class="text-sm font-medium text-gray-600">Hadir</p>
-                                <p class="text-2xl font-bold text-green-600" id="statHadir">847</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="bg-white rounded-xl p-6 card-shadow">
-                        <div class="flex items-center">
-                            <div class="p-2 bg-yellow-100 rounded-lg">
-                                <span class="text-yellow-600 text-xl">🤒</span>
-                            </div>
-                            <div class="ml-4">
-                                <p class="text-sm font-medium text-gray-600">Sakit</p>
-                                <p class="text-2xl font-bold text-yellow-600" id="statSakit">23</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="bg-white rounded-xl p-6 card-shadow">
-                        <div class="flex items-center">
-                            <div class="p-2 bg-blue-100 rounded-lg">
-                                <span class="text-blue-600 text-xl">📝</span>
-                            </div>
-                            <div class="ml-4">
-                                <p class="text-sm font-medium text-gray-600">Izin</p>
-                                <p class="text-2xl font-bold text-blue-600" id="statIzin">15</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="bg-white rounded-xl p-6 card-shadow">
-                        <div class="flex items-center">
-                            <div class="p-2 bg-red-100 rounded-lg">
-                                <span class="text-red-600 text-xl">❌</span>
-                            </div>
-                            <div class="ml-4">
-                                <p class="text-sm font-medium text-gray-600">Alpha</p>
-                                <p class="text-2xl font-bold text-red-600" id="statAlpha">8</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="bg-white rounded-xl p-6 card-shadow">
-                        <div class="flex items-center">
-                            <div class="p-2 bg-purple-100 rounded-lg">
-                                <span class="text-purple-600 text-xl">🏃</span>
-                            </div>
-                            <div class="ml-4">
-                                <p class="text-sm font-medium text-gray-600">Bolos</p>
-                                <p class="text-2xl font-bold text-purple-600" id="statBolos">3</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Class Status -->
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-                    <div class="bg-white rounded-xl p-6 card-shadow">
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Status Input Absensi Hari Ini</h3>
-                        <div class="grid grid-cols-3 gap-3" id="classStatusGrid">
-                            <div class="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-                                <span class="text-sm font-medium">Kelas 7A</span>
-                                <span class="text-green-600 text-xs">✅ Sudah Input</span>
-                            </div>
-                            <div class="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-                                <span class="text-sm font-medium">Kelas 7B</span>
-                                <span class="text-green-600 text-xs">✅ Sudah Input</span>
-                            </div>
-                            <div class="flex items-center justify-between p-3 bg-red-50 rounded-lg">
-                                <span class="text-sm font-medium">Kelas 7C</span>
-                                <span class="text-red-600 text-xs">❌ Belum Input</span>
-                            </div>
-                            <div class="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-                                <span class="text-sm font-medium">Kelas 8A</span>
-                                <span class="text-green-600 text-xs">✅ Sudah Input</span>
-                            </div>
-                            <div class="flex items-center justify-between p-3 bg-red-50 rounded-lg">
-                                <span class="text-sm font-medium">Kelas 8B</span>
-                                <span class="text-red-600 text-xs">❌ Belum Input</span>
-                            </div>
-                            <div class="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-                                <span class="text-sm font-medium">Kelas 9A</span>
-                                <span class="text-green-600 text-xs">✅ Sudah Input</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="bg-white rounded-xl p-6 card-shadow">
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Statistik Guru Hari Ini</h3>
-                        <div class="space-y-3">
-                            <div class="flex justify-between items-center">
-                                <span class="text-sm text-gray-600">Total Guru Hadir</span>
-                                <span class="font-semibold text-green-600" id="guruHadir">28</span>
-                            </div>
-                            <div class="flex justify-between items-center">
-                                <span class="text-sm text-gray-600">Izin</span>
-                                <span class="font-semibold text-blue-600" id="guruIzin">2</span>
-                            </div>
-                            <div class="flex justify-between items-center">
-                                <span class="text-sm text-gray-600">Sakit</span>
-                                <span class="font-semibold text-yellow-600" id="guruSakit">1</span>
-                            </div>
-                            <div class="flex justify-between items-center">
-                                <span class="text-sm text-gray-600">Alpha</span>
-                                <span class="font-semibold text-red-600" id="guruAlpha">0</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Recent Activity -->
-                <div class="bg-white rounded-xl p-6 card-shadow">
-                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Aktivitas Terbaru</h3>
-                    <div class="space-y-3" id="recentActivity">
-                        <div class="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                            <span class="text-green-600">✅</span>
-                            <div class="flex-1">
-                                <p class="text-sm font-medium">Absensi Kelas 7A berhasil disimpan</p>
-                                <p class="text-xs text-gray-500">2 menit yang lalu oleh Ahmad Fauzi, S.Pd</p>
-                            </div>
-                        </div>
-                        <div class="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                            <span class="text-blue-600">📝</span>
-                            <div class="flex-1">
-                                <p class="text-sm font-medium">Laporan bulanan telah dibuat</p>
-                                <p class="text-xs text-gray-500">15 menit yang lalu oleh Administrator</p>
-                            </div>
-                        </div>
-                        <div class="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                            <span class="text-yellow-600">⚠️</span>
-                            <div class="flex-1">
-                                <p class="text-sm font-medium">Kelas 8B belum input absensi</p>
-                                <p class="text-xs text-gray-500">30 menit yang lalu</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Absensi Tab -->
-            <div id="absensiTab" class="tab-content hidden">
-                <div class="bg-white rounded-xl p-6 card-shadow">
-                    <h3 class="text-lg font-semibold text-gray-900 mb-6">Form Input Absensi</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal</label>
-                            <input type="date" id="attendanceDate" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Jenis Absensi</label>
-                            <select id="attendanceType" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                <option value="Siswa">Siswa</option>
-                                <option value="Guru">Guru</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Kelas</label>
-                            <select id="attendanceClass" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                <option value="7A">7A</option>
-                                <option value="7B">7B</option>
-                                <option value="7C">7C</option>
-                                <option value="8A">8A</option>
-                                <option value="8B">8B</option>
-                                <option value="9A">9A</option>
-                            </select>
-                        </div>
-                        <div class="flex items-end">
-                            <button id="loadAttendanceBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition duration-200">
-                                📋 Muat Data
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <div class="border-t pt-6" id="attendanceFormContainer">
-                        <div class="text-center py-8 text-gray-500">
-                            <p>Pilih tanggal, jenis absensi, dan kelas, lalu klik "Muat Data" untuk memulai input absensi.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Laporan Tab -->
-            <div id="laporanTab" class="tab-content hidden">
-                <div class="bg-white rounded-xl p-6 card-shadow">
-                    <h3 class="text-lg font-semibold text-gray-900 mb-6">Generate Laporan Absensi</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal Mulai</label>
-                            <input type="date" id="reportStartDate" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal Akhir</label>
-                            <input type="date" id="reportEndDate" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Kelas</label>
-                            <select id="reportClass" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                <option value="Semua">Semua Kelas</option>
-                                <option value="7A">7A</option>
-                                <option value="7B">7B</option>
-                                <option value="7C">7C</option>
-                                <option value="8A">8A</option>
-                                <option value="8B">8B</option>
-                                <option value="9A">9A</option>
-                            </select>
-                        </div>
-                        <div class="flex items-end">
-                            <button id="generateReportBtn" class="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition duration-200">
-                                📈 Generate Laporan
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <div class="border-t pt-6" id="reportContainer">
-                        <div class="text-center py-8 text-gray-500">
-                            <p>Pilih rentang tanggal dan kelas, lalu klik "Generate Laporan" untuk melihat hasil.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Data Tab -->
-            <div id="dataTab" class="tab-content hidden">
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <div class="bg-white rounded-xl p-6 card-shadow">
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4">👨‍🎓 Data Siswa</h3>
-                        <div class="space-y-3 max-h-96 overflow-y-auto" id="studentsContainer">
-                            <!-- Students will be loaded here -->
-                        </div>
-                    </div>
-                    <div class="bg-white rounded-xl p-6 card-shadow">
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4">👨‍🏫 Data Guru</h3>
-                        <div class="space-y-3 max-h-96 overflow-y-auto" id="teachersContainer">
-                            <!-- Teachers will be loaded here -->
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Setup Tab -->
-            <div id="setupTab" class="tab-content hidden">
-                <div class="space-y-8">
-                    <!-- Connection Status -->
-                    <div class="bg-white rounded-xl p-6 card-shadow">
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4">🔗 Status Koneksi Google Sheets</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Sheet ID</label>
-                                <input type="text" id="sheetIdInput" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50" value="1WJB2DCVjj1UbZhJ61VGztRc2BB75vJWrwgEbmadybdI" readonly>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Apps Script URL</label>
-                                <input type="text" id="appsScriptInput" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-xs" value="https://script.google.com/macros/s/AKfycbynLB7L4YyKo2dqbXAGE2SCXaol_hztoa5994AVkJmv3HblcX_0O-dUEunA86BnOiOZaQ/exec" readonly>
-                            </div>
-                        </div>
-                        <div class="flex flex-wrap gap-2 mt-4">
-                            <button id="testConnectionBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition duration-200 text-sm">
-                                🔄 Test Koneksi
-                            </button>
-                            <button id="syncDataBtn" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition duration-200 text-sm">
-                                🔄 Sinkronisasi Data
-                            </button>
-                            <button id="syncPendingBtn" class="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg transition duration-200 text-sm">
-                                📤 Sync Pending Data
-                            </button>
-                            <button id="showBackupsBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition duration-200 text-sm">
-                                💾 Lihat Backup
-                            </button>
-                            <button id="showDebugBtn" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition duration-200 text-sm">
-                                🔍 Debug Info
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Debug Console -->
-                    <div class="bg-gray-900 rounded-xl p-6 card-shadow">
-                        <h3 class="text-lg font-semibold text-white mb-4">🔍 Debug Console</h3>
-                        <div id="debugConsole" class="bg-black rounded-lg p-4 h-64 overflow-y-auto text-green-400 font-mono text-sm">
-                            <div class="text-gray-500">Debug console ready...</div>
-                        </div>
-                        <div class="flex space-x-2 mt-4">
-                            <button id="clearDebugBtn" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm">
-                                🗑️ Clear
-                            </button>
-                            <button id="testSaveBtn" class="bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1 rounded text-sm">
-                                🧪 Test Save
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Setup Guide -->
-                    <div class="bg-blue-50 rounded-xl p-6 card-shadow">
-                        <h3 class="text-lg font-semibold text-blue-900 mb-4">📋 Panduan Setup Google Sheets</h3>
-                        <div class="space-y-4 text-sm text-blue-800">
-                            <div>
-                                <p class="font-medium mb-2">1. Struktur Sheet yang diperlukan:</p>
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div class="bg-white p-3 rounded-lg">
-                                        <p class="font-medium text-blue-900">Sheet "Users":</p>
-                                        <p class="text-xs font-mono">username | password | nama | role | hariPiket</p>
-                                    </div>
-                                    <div class="bg-white p-3 rounded-lg">
-                                        <p class="font-medium text-blue-900">Sheet "Siswa":</p>
-                                        <p class="text-xs font-mono">nama | nis | kelas</p>
-                                    </div>
-                                    <div class="bg-white p-3 rounded-lg">
-                                        <p class="font-medium text-blue-900">Sheet "JadwalGuru":</p>
-                                        <p class="text-xs font-mono">nama | nip | mapel | hari</p>
-                                    </div>
-                                    <div class="bg-white p-3 rounded-lg">
-                                        <p class="font-medium text-blue-900">Sheet "Absensi":</p>
-                                        <p class="text-xs font-mono">tanggal | kelas | jenisAbsensi | nama | identifier | status | timestamp | savedBy</p>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div>
-                                <p class="font-medium mb-2">2. Contoh Data Users:</p>
-                                <div class="bg-white p-3 rounded-lg font-mono text-xs">
-                                    <div class="grid grid-cols-5 gap-2 font-bold border-b pb-1">
-                                        <span>username</span><span>password</span><span>nama</span><span>role</span><span>hariPiket</span>
-                                    </div>
-                                    <div class="grid grid-cols-5 gap-2 mt-1">
-                                        <span>admin</span><span>admin123</span><span>Administrator</span><span>admin</span><span>-</span>
-                                    </div>
-                                    <div class="grid grid-cols-5 gap-2">
-                                        <span>guru1</span><span>guru123</span><span>Ahmad Fauzi</span><span>piket</span><span>Senin</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div>
-                                <p class="font-medium mb-2">3. Link Google Sheets:</p>
-                                <a href="https://docs.google.com/spreadsheets/d/1WJB2DCVjj1UbZhJ61VGztRc2BB75vJWrwgEbmadybdI/edit" target="_blank" class="text-blue-600 hover:text-blue-800 underline text-xs">
-                                    📊 Buka Google Sheets
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Current Mode Info -->
-                    <div class="bg-orange-50 rounded-xl p-6 card-shadow">
-                        <h3 class="text-lg font-semibold text-orange-900 mb-4">📱 Mode Saat Ini: <span id="currentModeDisplay">Demo Offline</span></h3>
-                        <div class="text-sm text-orange-800 space-y-2">
-                            <p>✅ Sistem berjalan dalam mode demo dengan data sampel</p>
-                            <p>✅ Semua fitur dapat digunakan untuk testing</p>
-                            <p>⚠️ Data tidak akan tersimpan ke Google Sheets</p>
-                            <p>🔄 Untuk mode online, pastikan Google Sheets dan Apps Script sudah dikonfigurasi dengan benar</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </main>
-
-        <!-- Footer -->
-        <footer class="bg-white border-t border-gray-200 mt-12">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-                <p class="text-center text-sm text-gray-500">
-                    Dikembangkan oleh Tim Digital SMP Purnawarman | Terintegrasi Google Sheets | Versi 2025
-                </p>
-            </div>
-        </footer>
+    <!-- Absensi Tab -->
+    <div id="absensiTab" class="tab-content hidden">
+      <div class="bg-white rounded-xl p-6 card-shadow">
+        <h3 class="text-lg font-semibold text-gray-900 mb-6">Form Input Absensi</h3>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <div><label class="block text-sm font-medium text-gray-700 mb-2">Tanggal</label><input type="date" id="attendanceDate" class="w-full px-3 py-2 border border-gray-300 rounded-lg"></div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-2">Jenis Absensi</label><select id="attendanceType" class="w-full px-3 py-2 border border-gray-300 rounded-lg"><option value="Siswa">Siswa</option><option value="Guru">Guru</option></select></div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-2">Kelas</label><select id="attendanceClass" class="w-full px-3 py-2 border border-gray-300 rounded-lg"><option value="7A">7A</option><option value="7B">7B</option><option value="7C">7C</option><option value="8A">8A</option><option value="8B">8B</option><option value="9A">9A</option></select></div>
+          <div class="flex items-end"><button id="loadAttendanceBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">📋 Muat Data</button></div>
+        </div>
+        <div class="border-t pt-6" id="attendanceFormContainer">
+          <div class="text-center py-8 text-gray-500">Pilih tanggal, jenis absensi, dan kelas, lalu klik "Muat Data".</div>
+        </div>
+      </div>
     </div>
 
-    <script>
-        // Google Sheets Configuration
-        const SHEET_ID = '1WJB2DCVjj1UbZhJ61VGztRc2BB75vJWrwgEbmadybdI';
-        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbynLB7L4YyKo2dqbXAGE2SCXaol_hztoa5994AVkJmv3HblcX_0O-dUEunA86BnOiOZaQ/exec';
-        
-        // Demo data for offline mode
-        const DEMO_USERS = [
-            { username: 'admin', password: 'admin123', nama: 'Administrator', role: 'admin', hariPiket: '' },
-            { username: 'guru1', password: 'guru123', nama: 'Ahmad Fauzi, S.Pd', role: 'piket', hariPiket: 'Senin' },
-            { username: 'guru2', password: 'guru456', nama: 'Siti Aminah, S.Pd', role: 'guru', hariPiket: 'Selasa' },
-            { username: 'piket', password: 'piket123', nama: 'Guru Piket', role: 'piket', hariPiket: 'Rabu' }
-        ];
+    <!-- Laporan Tab -->
+    <div id="laporanTab" class="tab-content hidden">
+      <div class="bg-white rounded-xl p-6 card-shadow">
+        <h3 class="text-lg font-semibold text-gray-900 mb-6">Generate Laporan Absensi</h3>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <div><label class="block text-sm font-medium text-gray-700 mb-2">Tanggal Mulai</label><input type="date" id="reportStartDate" class="w-full px-3 py-2 border rounded-lg"></div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-2">Tanggal Akhir</label><input type="date" id="reportEndDate" class="w-full px-3 py-2 border rounded-lg"></div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-2">Kelas</label><select id="reportClass" class="w-full px-3 py-2 border rounded-lg"><option value="Semua">Semua Kelas</option><option>7A</option><option>7B</option><option>7C</option><option>8A</option><option>8B</option><option>9A</option></select></div>
+          <div class="flex items-end"><button id="generateReportBtn" class="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg">📈 Generate Laporan</button></div>
+        </div>
+        <div class="border-t pt-6" id="reportContainer">
+          <div class="text-center py-8 text-gray-500">Pilih rentang tanggal dan kelas, lalu klik "Generate Laporan".</div>
+        </div>
+      </div>
+    </div>
 
-        const DEMO_STUDENTS = [
-            { nama: 'Ahmad Rizki Pratama', nis: '001', kelas: '7A' },
-            { nama: 'Siti Nurhaliza', nis: '002', kelas: '7A' },
-            { nama: 'Budi Santoso', nis: '003', kelas: '7A' },
-            { nama: 'Dewi Sartika', nis: '004', kelas: '7A' },
-            { nama: 'Muhammad Iqbal', nis: '005', kelas: '7B' },
-            { nama: 'Fatimah Zahra', nis: '006', kelas: '7B' },
-            { nama: 'Andi Wijaya', nis: '007', kelas: '8A' },
-            { nama: 'Rina Melati', nis: '008', kelas: '8A' },
-            { nama: 'Doni Setiawan', nis: '009', kelas: '9A' },
-            { nama: 'Maya Sari', nis: '010', kelas: '9A' }
-        ];
+    <!-- Data Tab -->
+    <div id="dataTab" class="tab-content hidden">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div class="bg-white rounded-xl p-6 card-shadow">
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">👨‍🎓 Data Siswa</h3>
+          <div class="space-y-3 max-h-96 overflow-y-auto" id="studentsContainer"></div>
+        </div>
+        <div class="bg-white rounded-xl p-6 card-shadow">
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">👨‍🏫 Data Guru</h3>
+          <div class="space-y-3 max-h-96 overflow-y-auto" id="teachersContainer"></div>
+        </div>
+      </div>
+    </div>
 
-        const DEMO_TEACHERS = [
-            { nama: 'Dra. Siti Aminah', nip: '196501011990032001', mapel: 'Matematika', hari: 'Senin' },
-            { nama: 'Ahmad Fauzi, S.Pd', nip: '197203151998021001', mapel: 'IPA', hari: 'Selasa' },
-            { nama: 'Rina Sari, S.S', nip: '198005102005012002', mapel: 'Bahasa Indonesia', hari: 'Rabu' },
-            { nama: 'Budi Hartono, S.Pd', nip: '197812252006041001', mapel: 'IPS', hari: 'Kamis' },
-            { nama: 'Dewi Lestari, S.Pd', nip: '198209102009012001', mapel: 'Bahasa Inggris', hari: 'Jumat' }
-        ];
+    <!-- Setup Tab -->
+    <div id="setupTab" class="tab-content hidden">
+      <div class="space-y-8">
+        <!-- Koneksi -->
+        <div class="bg-white rounded-xl p-6 card-shadow">
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">🔗 Status Koneksi Google Sheets</h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div><label class="block text-sm font-medium text-gray-700 mb-2">Sheet ID</label><input type="text" class="w-full px-3 py-2 border rounded-lg bg-gray-50" value="1WJB2DCVjj1UbZhJ61VGztRc2BB75vJWrwgEbmadybdI" readonly></div>
+            <div><label class="block text-sm font-medium text-gray-700 mb-2">Apps Script URL</label><input type="text" class="w-full px-3 py-2 border rounded-lg bg-gray-50 text-xs" value="https://script.google.com/macros/s/AKfycbwrSa3CFe8J478YZc20oVBTQDb3aVscuCSy6Lhc9rpCGDEVlKP9oJP8sXZFjqRxaSUkIw/exec" readonly></div>
+          </div>
+          <div class="flex flex-wrap gap-2 mt-4">
+            <button id="testConnectionBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm">🔄 Test Koneksi</button>
+            <button id="syncDataBtn" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm">🔄 Sinkronisasi Data</button>
+            <button id="syncPendingBtn" class="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg text-sm">📤 Sync Pending Data</button>
+            <button id="showBackupsBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm">💾 Lihat Backup</button>
+            <button id="showDebugBtn" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm">🔍 Debug Info</button>
+          </div>
+        </div>
 
-        // Global variables
-        let isOnlineMode = false;
-        let currentUser = null;
-        let attendanceData = [];
+        <!-- Debug Console -->
+        <div class="bg-gray-900 rounded-xl p-6 card-shadow">
+          <h3 class="text-lg font-semibold text-white mb-4">🔍 Debug Console</h3>
+          <div id="debugConsole" class="bg-black rounded-lg p-4 h-64 overflow-y-auto text-green-400 font-mono text-sm"><div class="text-gray-500">Debug console ready...</div></div>
+          <div class="flex space-x-2 mt-4">
+            <button id="clearDebugBtn" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm">🗑️ Clear</button>
+            <button id="testSaveBtn" class="bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1 rounded text-sm">🧪 Test Save</button>
+          </div>
+        </div>
 
-        // Debug console functions
-        function debugLog(message, type = 'info') {
-            const console = document.getElementById('debugConsole');
-            const timestamp = new Date().toLocaleTimeString();
-            const color = {
-                'info': 'text-green-400',
-                'error': 'text-red-400',
-                'warning': 'text-yellow-400',
-                'success': 'text-blue-400'
-            }[type] || 'text-green-400';
-            
-            const logEntry = document.createElement('div');
-            logEntry.className = color;
-            logEntry.innerHTML = `[${timestamp}] ${message}`;
-            console.appendChild(logEntry);
-            console.scrollTop = console.scrollHeight;
-        }
-
-        // Utility functions
-        function showNotification(message, type = 'info') {
-            const notification = document.createElement('div');
-            notification.className = `notification px-4 py-3 rounded-lg text-white text-sm font-medium shadow-lg ${
-                type === 'success' ? 'bg-green-500' : 
-                type === 'error' ? 'bg-red-500' : 
-                type === 'warning' ? 'bg-yellow-500' : 'bg-blue-500'
-            }`;
-            notification.textContent = message;
-            
-            document.body.appendChild(notification);
-            
-            setTimeout(() => notification.classList.add('show'), 100);
-            setTimeout(() => {
-                notification.classList.remove('show');
-                setTimeout(() => notification.remove(), 300);
-            }, 3000);
-        }
-
-        function updateTime() {
-            const now = new Date();
-            const options = { 
-                weekday: 'long', 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-                timeZone: 'Asia/Jakarta'
-            };
-            document.getElementById('currentTime').textContent = now.toLocaleDateString('id-ID', options) + ' WIB';
-        }
-
-        function updateConnectionStatus(online) {
-            const statusElement = document.getElementById('connectionStatus');
-            const modeDisplay = document.getElementById('currentModeDisplay');
-            isOnlineMode = online;
-            
-            if (online) {
-                statusElement.textContent = '✅ Mode Online - Google Sheets';
-                statusElement.className = 'px-3 py-1 rounded-full text-white text-xs font-medium status-connected';
-                if (modeDisplay) modeDisplay.textContent = 'Online - Google Sheets';
-                debugLog('🔗 Mode switched to ONLINE - Google Sheets connected', 'success');
-            } else {
-                statusElement.textContent = '📱 Mode Demo - Offline';
-                statusElement.className = 'px-3 py-1 rounded-full text-white text-xs font-medium status-offline';
-                if (modeDisplay) modeDisplay.textContent = 'Demo Offline';
-                debugLog('📱 Mode switched to DEMO - Using local data', 'warning');
-            }
-        }
-
-        // Google Sheets API Functions with enhanced debugging
-        async function testConnection() {
-            debugLog('🔄 ENHANCED CONNECTION TEST: Testing multiple connection methods...', 'info');
-            
-            // Method 1: Basic ping test
-            try {
-                debugLog('🔍 Method 1: Basic ping test...', 'info');
-                const response = await fetch(`${APPS_SCRIPT_URL}?action=test&timestamp=${Date.now()}`, {
-                    method: 'GET',
-                    mode: 'cors',
-                    cache: 'no-cache'
-                });
-                
-                debugLog(`📡 Basic ping status: ${response.status} ${response.statusText}`, 'info');
-                
-                if (response.ok) {
-                    const responseText = await response.text();
-                    debugLog(`📥 Basic ping response: ${responseText}`, 'info');
-                    
-                    try {
-                        const result = JSON.parse(responseText);
-                        if (result.success) {
-                            debugLog(`✅ Basic ping SUCCESS!`, 'success');
-                            return true;
-                        }
-                    } catch (e) {
-                        // Check for success indicators in text
-                        if (responseText.toLowerCase().includes('success') || 
-                            responseText.toLowerCase().includes('ok') ||
-                            responseText.toLowerCase().includes('ready')) {
-                            debugLog(`✅ Basic ping SUCCESS (text analysis)!`, 'success');
-                            return true;
-                        }
-                    }
-                }
-            } catch (error) {
-                debugLog(`❌ Basic ping failed: ${error.message}`, 'error');
-            }
-            
-            // Method 2: Simple GET without parameters
-            try {
-                debugLog('🔍 Method 2: Simple GET test...', 'info');
-                const response = await fetch(APPS_SCRIPT_URL, {
-                    method: 'GET',
-                    mode: 'cors',
-                    cache: 'no-cache'
-                });
-                
-                debugLog(`📡 Simple GET status: ${response.status} ${response.statusText}`, 'info');
-                
-                if (response.ok) {
-                    const responseText = await response.text();
-                    debugLog(`📥 Simple GET response: ${responseText.substring(0, 200)}...`, 'info');
-                    
-                    // Any successful response indicates the endpoint is accessible
-                    debugLog(`✅ Simple GET SUCCESS - endpoint accessible!`, 'success');
-                    return true;
-                }
-            } catch (error) {
-                debugLog(`❌ Simple GET failed: ${error.message}`, 'error');
-            }
-            
-            // Method 3: POST test with minimal data
-            try {
-                debugLog('🔍 Method 3: POST test with minimal data...', 'info');
-                const response = await fetch(APPS_SCRIPT_URL, {
-                    method: 'POST',
-                    mode: 'cors',
-                    cache: 'no-cache',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        action: 'test',
-                        timestamp: new Date().toISOString()
-                    })
-                });
-                
-                debugLog(`📡 POST test status: ${response.status} ${response.statusText}`, 'info');
-                
-                if (response.ok) {
-                    const responseText = await response.text();
-                    debugLog(`📥 POST test response: ${responseText.substring(0, 200)}...`, 'info');
-                    debugLog(`✅ POST test SUCCESS!`, 'success');
-                    return true;
-                }
-            } catch (error) {
-                debugLog(`❌ POST test failed: ${error.message}`, 'error');
-            }
-            
-            debugLog(`💥 ALL CONNECTION TESTS FAILED`, 'error');
-            return false;
-        }
-
-        async function authenticateUserOnline(username, password) {
-            debugLog(`🔐 Attempting online authentication for user: ${username}`, 'info');
-            try {
-                const url = `${APPS_SCRIPT_URL}?action=login&username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`;
-                debugLog(`📡 Login URL: ${url}`, 'info');
-                
-                const response = await fetch(url, {
-                    method: 'GET',
-                    mode: 'cors'
-                });
-                
-                debugLog(`📡 Login response status: ${response.status}`, 'info');
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
-                const result = await response.json();
-                debugLog(`✅ Online login result: ${JSON.stringify(result)}`, result.success ? 'success' : 'error');
-                return result;
-            } catch (error) {
-                debugLog(`❌ Online authentication failed: ${error.message}`, 'error');
-                return { success: false, error: 'Connection failed' };
-            }
-        }
-
-        async function getDataFromSheet(sheetName) {
-            debugLog(`📊 Fetching data from sheet: ${sheetName}`, 'info');
-            try {
-                const response = await fetch(`${APPS_SCRIPT_URL}?action=getData&sheet=${encodeURIComponent(sheetName)}`);
-                const result = await response.json();
-                debugLog(`📊 Data from ${sheetName}: ${result.data ? result.data.length : 0} records`, 'success');
-                return result.success ? result.data : [];
-            } catch (error) {
-                debugLog(`❌ Failed to get data from ${sheetName}: ${error.message}`, 'error');
-                return [];
-            }
-        }
-
-        async function saveAttendanceToSheet(attendanceData) {
-            debugLog(`💾 ULTIMATE SAVE SYSTEM: Starting comprehensive save process for ${attendanceData.length} records...`, 'info');
-            debugLog(`🎯 Target Sheet ID: ${SHEET_ID}`, 'info');
-            debugLog(`🔗 Apps Script URL: ${APPS_SCRIPT_URL}`, 'info');
-            debugLog(`📝 Sample record: ${JSON.stringify(attendanceData[0])}`, 'info');
-            
-            // CRITICAL FIX: Pre-flight checks
-            debugLog(`🔍 PRE-FLIGHT CHECKS:`, 'info');
-            debugLog(`📊 Sheet ID valid: ${SHEET_ID ? 'YES' : 'NO'}`, 'info');
-            debugLog(`🔗 Apps Script URL valid: ${APPS_SCRIPT_URL ? 'YES' : 'NO'}`, 'info');
-            debugLog(`🌐 Navigator online: ${navigator.onLine}`, 'info');
-            debugLog(`📱 User agent: ${navigator.userAgent.substring(0, 50)}...`, 'info');
-            
-            // CRITICAL FIX: Enhanced save methods with proper error handling
-            const saveAttempts = [
-                // Method 1: FIXED - Standard POST with proper CORS and error handling
-                async () => {
-                    debugLog(`🔄 Method 1: FIXED Standard POST`, 'info');
-                    
-                    const payload = {
-                        action: 'saveAttendance',
-                        data: attendanceData,
-                        sheetId: SHEET_ID,
-                        timestamp: new Date().toISOString()
-                    };
-                    
-                    debugLog(`📤 Method 1 payload: ${JSON.stringify(payload).substring(0, 200)}...`, 'info');
-                    
-                    const response = await fetch(APPS_SCRIPT_URL, {
-                        method: 'POST',
-                        mode: 'cors',
-                        cache: 'no-cache',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Accept': 'application/json, text/plain, */*'
-                        },
-                        body: JSON.stringify(payload),
-                        redirect: 'follow'
-                    });
-                    
-                    debugLog(`📡 Method 1 status: ${response.status} ${response.statusText}`, 'info');
-                    debugLog(`📡 Method 1 headers: ${JSON.stringify(Object.fromEntries(response.headers.entries()))}`, 'info');
-                    
-                    if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                    }
-                    
-                    const responseText = await response.text();
-                    debugLog(`📥 Method 1 raw response: ${responseText}`, 'info');
-                    
-                    // CRITICAL FIX: Better response parsing
-                    let result;
-                    try {
-                        result = JSON.parse(responseText);
-                        debugLog(`✅ Method 1 parsed JSON: ${JSON.stringify(result)}`, 'success');
-                    } catch (e) {
-                        debugLog(`⚠️ Method 1 non-JSON response, analyzing...`, 'warning');
-                        
-                        // Check for success indicators in text response
-                        const successIndicators = ['success', 'saved', 'ok', 'completed', 'done', 'appended'];
-                        const hasSuccess = successIndicators.some(indicator => 
-                            responseText.toLowerCase().includes(indicator)
-                        );
-                        
-                        if (hasSuccess) {
-                            result = { success: true, message: responseText, method: 'text-analysis' };
-                            debugLog(`✅ Method 1 success detected in text response`, 'success');
-                        } else {
-                            throw new Error(`Non-JSON response without success indicators: ${responseText.substring(0, 100)}`);
-                        }
-                    }
-                    
-                    return result;
-                },
-                
-                // Method 2: FIXED - GET with proper URL encoding
-                async () => {
-                    debugLog(`🔄 Method 2: FIXED GET with URL parameters`, 'info');
-                    
-                    const testRecord = attendanceData[0];
-                    const params = new URLSearchParams();
-                    params.append('action', 'saveAttendance');
-                    params.append('sheetId', SHEET_ID);
-                    params.append('tanggal', testRecord.tanggal);
-                    params.append('nama', testRecord.nama);
-                    params.append('identifier', testRecord.identifier);
-                    params.append('kelas', testRecord.kelas);
-                    params.append('jenisAbsensi', testRecord.jenisAbsensi);
-                    params.append('status', testRecord.status);
-                    params.append('timestamp', testRecord.timestamp);
-                    params.append('savedBy', testRecord.savedBy);
-                    
-                    const url = `${APPS_SCRIPT_URL}?${params.toString()}`;
-                    debugLog(`📤 Method 2 URL: ${url.substring(0, 150)}...`, 'info');
-                    
-                    const response = await fetch(url, {
-                        method: 'GET',
-                        mode: 'cors',
-                        cache: 'no-cache',
-                        redirect: 'follow'
-                    });
-                    
-                    debugLog(`📡 Method 2 status: ${response.status} ${response.statusText}`, 'info');
-                    
-                    if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                    }
-                    
-                    const responseText = await response.text();
-                    debugLog(`📥 Method 2 raw response: ${responseText}`, 'info');
-                    
-                    let result;
-                    try {
-                        result = JSON.parse(responseText);
-                        debugLog(`✅ Method 2 parsed JSON: ${JSON.stringify(result)}`, 'success');
-                    } catch (e) {
-                        const successIndicators = ['success', 'saved', 'ok', 'completed'];
-                        const hasSuccess = successIndicators.some(indicator => 
-                            responseText.toLowerCase().includes(indicator)
-                        );
-                        
-                        if (hasSuccess) {
-                            result = { success: true, message: responseText, method: 'get-text-analysis' };
-                            debugLog(`✅ Method 2 success detected in text`, 'success');
-                        } else {
-                            throw new Error(`GET response without success: ${responseText.substring(0, 100)}`);
-                        }
-                    }
-                    
-                    return result;
-                },
-                
-                // Method 3: FIXED - FormData with proper encoding
-                async () => {
-                    debugLog(`🔄 Method 3: FIXED FormData POST`, 'info');
-                    
-                    const formData = new FormData();
-                    formData.append('action', 'saveAttendance');
-                    formData.append('sheetId', SHEET_ID);
-                    formData.append('data', JSON.stringify(attendanceData));
-                    formData.append('timestamp', new Date().toISOString());
-                    
-                    debugLog(`📤 Method 3 FormData prepared with ${attendanceData.length} records`, 'info');
-                    
-                    const response = await fetch(APPS_SCRIPT_URL, {
-                        method: 'POST',
-                        mode: 'cors',
-                        cache: 'no-cache',
-                        body: formData,
-                        redirect: 'follow'
-                    });
-                    
-                    debugLog(`📡 Method 3 status: ${response.status} ${response.statusText}`, 'info');
-                    
-                    if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                    }
-                    
-                    const responseText = await response.text();
-                    debugLog(`📥 Method 3 raw response: ${responseText}`, 'info');
-                    
-                    let result;
-                    try {
-                        result = JSON.parse(responseText);
-                        debugLog(`✅ Method 3 parsed JSON: ${JSON.stringify(result)}`, 'success');
-                    } catch (e) {
-                        const successIndicators = ['success', 'saved', 'ok', 'appended'];
-                        const hasSuccess = successIndicators.some(indicator => 
-                            responseText.toLowerCase().includes(indicator)
-                        );
-                        
-                        if (hasSuccess) {
-                            result = { success: true, message: responseText, method: 'formdata-text-analysis' };
-                            debugLog(`✅ Method 3 success detected`, 'success');
-                        } else {
-                            throw new Error(`FormData response without success: ${responseText.substring(0, 100)}`);
-                        }
-                    }
-                    
-                    return result;
-                },
-                
-                // Method 4: FIXED - Direct Sheets API format
-                async () => {
-                    debugLog(`🔄 Method 4: FIXED Direct Sheets API format`, 'info');
-                    
-                    const sheetsPayload = {
-                        action: 'appendToSheet',
-                        spreadsheetId: SHEET_ID,
-                        range: 'Absensi!A:H',
-                        values: attendanceData.map(record => [
-                            record.tanggal,
-                            record.kelas,
-                            record.jenisAbsensi,
-                            record.nama,
-                            record.identifier,
-                            record.status,
-                            record.timestamp,
-                            record.savedBy
-                        ]),
-                        valueInputOption: 'RAW'
-                    };
-                    
-                    debugLog(`📤 Method 4 Sheets payload prepared with ${sheetsPayload.values.length} rows`, 'info');
-                    
-                    const response = await fetch(APPS_SCRIPT_URL, {
-                        method: 'POST',
-                        mode: 'cors',
-                        cache: 'no-cache',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Accept': 'application/json'
-                        },
-                        body: JSON.stringify(sheetsPayload),
-                        redirect: 'follow'
-                    });
-                    
-                    debugLog(`📡 Method 4 status: ${response.status} ${response.statusText}`, 'info');
-                    
-                    if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                    }
-                    
-                    const responseText = await response.text();
-                    debugLog(`📥 Method 4 raw response: ${responseText}`, 'info');
-                    
-                    let result;
-                    try {
-                        result = JSON.parse(responseText);
-                        debugLog(`✅ Method 4 parsed JSON: ${JSON.stringify(result)}`, 'success');
-                    } catch (e) {
-                        const successIndicators = ['success', 'saved', 'appended', 'updated'];
-                        const hasSuccess = successIndicators.some(indicator => 
-                            responseText.toLowerCase().includes(indicator)
-                        );
-                        
-                        if (hasSuccess) {
-                            result = { success: true, message: responseText, method: 'sheets-text-analysis' };
-                            debugLog(`✅ Method 4 success detected`, 'success');
-                        } else {
-                            throw new Error(`Sheets response without success: ${responseText.substring(0, 100)}`);
-                        }
-                    }
-                    
-                    return result;
-                },
-                
-                // Method 5: FIXED - Alternative endpoint with retry logic
-                async () => {
-                    debugLog(`🔄 Method 5: FIXED Alternative endpoint with retry`, 'info');
-                    
-                    const altPayload = {
-                        method: 'POST',
-                        action: 'saveData',
-                        target: 'Absensi',
-                        spreadsheetId: SHEET_ID,
-                        records: attendanceData,
-                        metadata: {
-                            timestamp: new Date().toISOString(),
-                            source: 'AbsensiApp',
-                            version: '2.0'
-                        }
-                    };
-                    
-                    debugLog(`📤 Method 5 alternative payload prepared`, 'info');
-                    
-                    const response = await fetch(APPS_SCRIPT_URL, {
-                        method: 'POST',
-                        mode: 'cors',
-                        cache: 'no-cache',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Accept': '*/*',
-                            'X-Requested-With': 'XMLHttpRequest'
-                        },
-                        body: JSON.stringify(altPayload),
-                        redirect: 'follow'
-                    });
-                    
-                    debugLog(`📡 Method 5 status: ${response.status} ${response.statusText}`, 'info');
-                    
-                    if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                    }
-                    
-                    const responseText = await response.text();
-                    debugLog(`📥 Method 5 raw response: ${responseText}`, 'info');
-                    
-                    let result;
-                    try {
-                        result = JSON.parse(responseText);
-                        debugLog(`✅ Method 5 parsed JSON: ${JSON.stringify(result)}`, 'success');
-                    } catch (e) {
-                        const successIndicators = ['success', 'saved', 'ok', 'completed'];
-                        const hasSuccess = successIndicators.some(indicator => 
-                            responseText.toLowerCase().includes(indicator)
-                        );
-                        
-                        if (hasSuccess) {
-                            result = { success: true, message: responseText, method: 'alt-text-analysis' };
-                            debugLog(`✅ Method 5 success detected`, 'success');
-                        } else {
-                            throw new Error(`Alt response without success: ${responseText.substring(0, 100)}`);
-                        }
-                    }
-                    
-                    return result;
-                }
-            ];
-            
-            // CRITICAL FIX: Execute methods with enhanced error handling and success detection
-            let successCount = 0;
-            let lastError = null;
-            let successResults = [];
-            
-            for (let i = 0; i < saveAttempts.length; i++) {
-                try {
-                    debugLog(`🚀 EXECUTING METHOD ${i + 1}/${saveAttempts.length}...`, 'info');
-                    
-                    const result = await saveAttempts[i]();
-                    
-                    debugLog(`📊 Method ${i + 1} result: ${JSON.stringify(result)}`, 'info');
-                    
-                    // CRITICAL FIX: Enhanced success detection
-                    const isSuccess = result && (
-                        result.success === true ||
-                        result.status === 'success' ||
-                        result.result === 'success' ||
-                        result.ok === true ||
-                        (result.message && typeof result.message === 'string' && 
-                         (result.message.toLowerCase().includes('success') || 
-                          result.message.toLowerCase().includes('saved') ||
-                          result.message.toLowerCase().includes('appended') ||
-                          result.message.toLowerCase().includes('completed'))) ||
-                        (result.data && result.data.success === true)
-                    );
-                    
-                    if (isSuccess) {
-                        successCount++;
-                        successResults.push({ method: i + 1, result: result });
-                        debugLog(`✅ METHOD ${i + 1} SUCCESS! (${successCount} total successes)`, 'success');
-                        
-                        // CRITICAL FIX: Return immediately on first success
-                        debugLog(`🎉 FIRST SUCCESS ACHIEVED! Method ${i + 1} worked!`, 'success');
-                        return { 
-                            success: true, 
-                            method: i + 1, 
-                            result: result,
-                            totalAttempts: i + 1,
-                            successCount: successCount,
-                            message: `Method ${i + 1} berhasil menyimpan data ke Google Sheets`
-                        };
-                    } else {
-                        debugLog(`⚠️ Method ${i + 1} returned non-success result`, 'warning');
-                    }
-                    
-                } catch (error) {
-                    lastError = error;
-                    debugLog(`❌ Method ${i + 1} FAILED: ${error.message}`, 'error');
-                    debugLog(`🔍 Error stack: ${error.stack}`, 'error');
-                }
-                
-                // Small delay between attempts
-                await new Promise(resolve => setTimeout(resolve, 1000));
-            }
-            
-            // CRITICAL FIX: Final evaluation with detailed reporting
-            if (successCount > 0) {
-                debugLog(`🎊 PARTIAL SUCCESS: ${successCount}/${saveAttempts.length} methods succeeded`, 'success');
-                return { 
-                    success: true, 
-                    method: 'multiple', 
-                    successCount: successCount,
-                    totalAttempts: saveAttempts.length,
-                    successResults: successResults,
-                    message: `${successCount} metode berhasil menyimpan data`
-                };
-            } else {
-                debugLog(`💥 TOTAL FAILURE: All ${saveAttempts.length} methods failed`, 'error');
-                debugLog(`🔍 Last error: ${lastError ? lastError.message : 'Unknown error'}`, 'error');
-                
-                // CRITICAL FIX: Detailed failure analysis
-                debugLog(`🔍 FAILURE ANALYSIS:`, 'error');
-                debugLog(`📊 Sheet ID: ${SHEET_ID}`, 'error');
-                debugLog(`🔗 Apps Script URL: ${APPS_SCRIPT_URL}`, 'error');
-                debugLog(`🌐 Network status: ${navigator.onLine ? 'Online' : 'Offline'}`, 'error');
-                debugLog(`📱 Browser: ${navigator.userAgent.split(' ')[0]}`, 'error');
-                
-                return { 
-                    success: false, 
-                    error: `Semua ${saveAttempts.length} metode gagal. Error terakhir: ${lastError ? lastError.message : 'Unknown error'}`,
-                    totalAttempts: saveAttempts.length,
-                    lastError: lastError,
-                    analysis: {
-                        sheetId: SHEET_ID,
-                        appsScriptUrl: APPS_SCRIPT_URL,
-                        networkOnline: navigator.onLine,
-                        userAgent: navigator.userAgent
-                    }
-                };
-            }
-        }
-
-        async function addUserToSheet(userData) {
-            try {
-                const response = await fetch(APPS_SCRIPT_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        action: 'addUser',
-                        data: userData
-                    })
-                });
-                const result = await response.json();
-                return result;
-            } catch (error) {
-                console.error('Failed to add user:', error);
-                return { success: false, error: 'Connection failed' };
-            }
-        }
-
-        async function addStudentToSheet(studentData) {
-            try {
-                const response = await fetch(APPS_SCRIPT_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        action: 'addStudent',
-                        data: studentData
-                    })
-                });
-                const result = await response.json();
-                return result;
-            } catch (error) {
-                console.error('Failed to add student:', error);
-                return { success: false, error: 'Connection failed' };
-            }
-        }
-
-        async function addTeacherToSheet(teacherData) {
-            try {
-                const response = await fetch(APPS_SCRIPT_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        action: 'addTeacher',
-                        data: teacherData
-                    })
-                });
-                const result = await response.json();
-                return result;
-            } catch (error) {
-                console.error('Failed to add teacher:', error);
-                return { success: false, error: 'Connection failed' };
-            }
-        }
-
-        // Authentication (Hybrid Online/Offline)
-        async function authenticateUser(username, password) {
-            debugLog(`🔐 Authenticating user: ${username}`, 'info');
-            
-            // Always try demo users first for testing
-            const demoUser = DEMO_USERS.find(u => u.username === username && u.password === password);
-            if (demoUser) {
-                debugLog(`✅ Demo user found: ${demoUser.nama}`, 'success');
-                return { success: true, user: demoUser };
-            }
-            
-            // If online mode is enabled, try online authentication
-            if (isOnlineMode) {
-                try {
-                    const onlineResult = await authenticateUserOnline(username, password);
-                    if (onlineResult.success) {
-                        debugLog(`✅ Online user found: ${onlineResult.user.nama}`, 'success');
-                        return onlineResult;
-                    }
-                } catch (error) {
-                    debugLog(`❌ Online auth failed, falling back to demo: ${error.message}`, 'error');
-                }
-            }
-            
-            debugLog(`❌ Authentication failed for user: ${username}`, 'error');
-            return { success: false, error: 'Invalid credentials' };
-        }
-
-        // Data loading functions (Hybrid Online/Offline)
-        async function loadData() {
-            debugLog('📊 Loading data...', 'info');
-            let students = DEMO_STUDENTS;
-            let teachers = DEMO_TEACHERS;
-
-            if (isOnlineMode) {
-                try {
-                    const onlineStudents = await getDataFromSheet('Siswa');
-                    const onlineTeachers = await getDataFromSheet('JadwalGuru');
-                    
-                    if (onlineStudents.length > 0) students = onlineStudents;
-                    if (onlineTeachers.length > 0) teachers = onlineTeachers;
-                } catch (error) {
-                    debugLog(`❌ Failed to load online data, using demo data: ${error.message}`, 'error');
-                }
-            }
-
-            // Load students
-            const studentsContainer = document.getElementById('studentsContainer');
-            studentsContainer.innerHTML = '';
-            
-            students.forEach(student => {
-                const div = document.createElement('div');
-                div.className = 'flex items-center justify-between p-3 bg-gray-50 rounded-lg';
-                div.innerHTML = `
-                    <div>
-                        <p class="font-medium text-sm">${student.nama}</p>
-                        <p class="text-xs text-gray-500">NIS: ${student.nis}</p>
-                    </div>
-                    <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs">${student.kelas}</span>
-                `;
-                studentsContainer.appendChild(div);
-            });
-
-            // Load teachers
-            const teachersContainer = document.getElementById('teachersContainer');
-            teachersContainer.innerHTML = '';
-            
-            teachers.forEach(teacher => {
-                const div = document.createElement('div');
-                div.className = 'flex items-center justify-between p-3 bg-gray-50 rounded-lg';
-                div.innerHTML = `
-                    <div>
-                        <p class="font-medium text-sm">${teacher.nama}</p>
-                        <p class="text-xs text-gray-500">NIP: ${teacher.nip} | ${teacher.mapel}</p>
-                    </div>
-                    <span class="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs">${teacher.hari}</span>
-                `;
-                teachersContainer.appendChild(div);
-            });
-
-            // Store current data globally for attendance form
-            window.currentStudents = students;
-            window.currentTeachers = teachers;
-            
-            debugLog(`✅ Data loaded: ${students.length} students, ${teachers.length} teachers`, 'success');
-        }
-
-        function loadAttendanceForm() {
-            const selectedClass = document.getElementById('attendanceClass').value;
-            const attendanceType = document.getElementById('attendanceType').value;
-            const container = document.getElementById('attendanceFormContainer');
-            
-            let data = [];
-            if (attendanceType === 'Siswa') {
-                data = (window.currentStudents || DEMO_STUDENTS).filter(s => s.kelas === selectedClass);
-            } else {
-                data = window.currentTeachers || DEMO_TEACHERS;
-            }
-
-            container.innerHTML = `
-                <div class="flex justify-between items-center mb-4">
-                    <h4 class="font-medium text-gray-900">Daftar ${attendanceType} ${attendanceType === 'Siswa' ? 'Kelas ' + selectedClass : ''}</h4>
-                    <div class="space-x-2">
-                        <button id="setAllPresentBtn" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm transition duration-200">
-                            ✅ Semua Hadir
-                        </button>
-                        <button id="saveAttendanceBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm transition duration-200">
-                            💾 Simpan Absensi
-                        </button>
-                    </div>
+        <!-- Panduan Setup -->
+        <div class="bg-blue-50 rounded-xl p-6 card-shadow">
+          <h3 class="text-lg font-semibold text-blue-900 mb-4">📋 Panduan Setup Google Sheets</h3>
+          <div class="space-y-4 text-sm text-blue-800">
+            <div>
+              <p class="font-medium mb-2">1. Struktur Sheet yang diperlukan:</p>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-white p-3 rounded-lg"><p class="font-medium text-blue-900">Sheet "Users":</p><p class="text-xs font-mono">username | password | nama | role | hariPiket</p></div>
+                <div class="bg-white p-3 rounded-lg"><p class="font-medium text-blue-900">Sheet "Siswa":</p><p class="text-xs font-mono">nama | nis | kelas</p></div>
+                <div class="bg-white p-3 rounded-lg"><p class="font-medium text-blue-900">Sheet "JadwalGuru":</p><p class="text-xs font-mono">nama | nip | mapel | hari</p></div>
+                <div class="bg-white p-3 rounded-lg"><p class="font-medium text-blue-900">Sheet "Absensi":</p><p class="text-xs font-mono">tanggal | kelas | jenisAbsensi | nama | identifier | status | timestamp | savedBy</p></div>
+              </div>
+            </div>
+            <div>
+              <p class="font-medium mb-2">2. Contoh Data Users:</p>
+              <div class="bg-white p-3 rounded-lg font-mono text-xs">
+                <div class="grid grid-cols-5 gap-2 font-bold border-b pb-1">
+                  <span>username</span><span>password</span><span>nama</span><span>role</span><span>hariPiket</span>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="attendanceList">
-                    ${data.map(item => `
-                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                            <span class="text-sm">${item.nama} (${attendanceType === 'Siswa' ? item.nis : item.nip})</span>
-                            <select class="px-2 py-1 border border-gray-300 rounded text-xs attendance-select" data-name="${item.nama}" data-id="${attendanceType === 'Siswa' ? item.nis : item.nip}">
-                                <option value="Hadir">Hadir</option>
-                                <option value="Sakit">Sakit</option>
-                                <option value="Izin">Izin</option>
-                                <option value="Alpha">Alpha</option>
-                                ${attendanceType === 'Siswa' ? '<option value="Bolos">Bolos</option>' : ''}
-                            </select>
-                        </div>
-                    `).join('')}
-                </div>
-                <div class="mt-4 p-3 bg-blue-50 rounded-lg">
-                    <p class="text-sm text-blue-700">👨‍🏫 Petugas yang bertugas: ${currentUser ? currentUser.nama : 'Administrator'}</p>
-                </div>
-            `;
+                <div class="grid grid-cols-5 gap-2 mt-1"><span>admin</span><span>admin123</span><span>Administrator</span><span>admin</span><span>-</span></div>
+                <div class="grid grid-cols-5 gap-2"><span>guru1</span><span>guru123</span><span>Ahmad Fauzi</span><span>piket</span><span>Senin</span></div>
+              </div>
+            </div>
+            <div>
+              <p class="font-medium mb-2">3. Link Google Sheets:</p>
+              <a href="https://docs.google.com/spreadsheets/d/1WJB2DCVjj1UbZhJ61VGztRc2BB75vJWrwgEbmadybdI/edit" target="_blank" class="text-blue-600 hover:text-blue-800 underline text-xs">📊 Buka Google Sheets</a>
+            </div>
+          </div>
+        </div>
 
-            // Add event listeners
-            document.getElementById('setAllPresentBtn').addEventListener('click', function() {
-                document.querySelectorAll('.attendance-select').forEach(select => {
-                    select.value = 'Hadir';
-                });
-                showNotification('✅ Semua status diset ke Hadir', 'success');
-            });
+        <!-- Mode Info -->
+        <div class="bg-orange-50 rounded-xl p-6 card-shadow">
+          <h3 class="text-lg font-semibold text-orange-900 mb-4">📱 Mode Saat Ini: <span id="currentModeDisplay">Demo Offline</span></h3>
+          <div class="text-sm text-orange-800 space-y-2">
+            <p>✅ Sistem berjalan dalam mode demo dengan data sampel</p>
+            <p>✅ Semua fitur dapat digunakan untuk testing</p>
+            <p>⚠️ Data akan tersimpan ke Google Sheets saat koneksi berhasil</p>
+            <p>🔄 Untuk mode online, pastikan Google Sheets dan Apps Script sudah dikonfigurasi benar</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
 
-            document.getElementById('saveAttendanceBtn').addEventListener('click', async function() {
-                const attendanceSelects = document.querySelectorAll('.attendance-select');
-                const selectedDate = document.getElementById('attendanceDate').value;
-                
-                if (!selectedDate) {
-                    showNotification('❌ Pilih tanggal terlebih dahulu!', 'error');
-                    return;
-                }
+  <footer class="bg-white border-t border-gray-200 mt-12">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      <p class="text-center text-sm text-gray-500">Dikembangkan untuk SMP PURNAWARMAN | Google Sheets Integrated | Super Final 2025</p>
+    </div>
+  </footer>
+</div>
 
-                const attendanceData = [];
-                attendanceSelects.forEach(select => {
-                    attendanceData.push({
-                        tanggal: selectedDate,
-                        nama: select.dataset.name,
-                        identifier: select.dataset.id,
-                        kelas: attendanceType === 'Siswa' ? selectedClass : '',
-                        jenisAbsensi: attendanceType,
-                        status: select.value,
-                        timestamp: new Date().toISOString(),
-                        savedBy: currentUser ? currentUser.nama : 'Administrator'
-                    });
-                });
+<script>
+// ============= KONFIGURASI =============
+const SHEET_ID = "1WJB2DCVjj1UbZhJ61VGztRc2BB75vJWrwgEbmadybdI";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwrSa3CFe8J478YZc20oVBTQDb3aVscuCSy6Lhc9rpCGDEVlKP9oJP8sXZFjqRxaSUkIw/exec";
 
-                // Show loading state
-                this.innerHTML = '💾 Menyimpan...';
-                this.disabled = true;
+// Demo data
+const DEMO_USERS = [
+  { username:'admin', password:'admin123', nama:'Administrator', role:'admin', hariPiket:'' },
+  { username:'guru1', password:'guru123', nama:'Ahmad Fauzi, S.Pd', role:'piket', hariPiket:'Senin' },
+  { username:'guru2', password:'guru456', nama:'Siti Aminah, S.Pd', role:'guru', hariPiket:'Selasa' },
+  { username:'piket', password:'piket123', nama:'Guru Piket', role:'piket', hariPiket:'Rabu' }
+];
+const DEMO_STUDENTS = [
+  { nama:'Ahmad Rizki Pratama', nis:'001', kelas:'7A' },
+  { nama:'Siti Nurhaliza', nis:'002', kelas:'7A' },
+  { nama:'Budi Santoso', nis:'003', kelas:'7A' },
+  { nama:'Dewi Sartika', nis:'004', kelas:'7A' },
+  { nama:'Muhammad Iqbal', nis:'005', kelas:'7B' },
+  { nama:'Fatimah Zahra', nis:'006', kelas:'7B' },
+  { nama:'Andi Wijaya', nis:'007', kelas:'8A' },
+  { nama:'Rina Melati', nis:'008', kelas:'8A' },
+  { nama:'Doni Setiawan', nis:'009', kelas:'9A' },
+  { nama:'Maya Sari', nis:'010', kelas:'9A' }
+];
+const DEMO_TEACHERS = [
+  { nama:'Dra. Siti Aminah', nip:'196501011990032001', mapel:'Matematika', hari:'Senin' },
+  { nama:'Ahmad Fauzi, S.Pd', nip:'197203151998021001', mapel:'IPA', hari:'Selasa' },
+  { nama:'Rina Sari, S.S', nip:'198005102005012002', mapel:'Bahasa Indonesia', hari:'Rabu' },
+  { nama:'Budi Hartono, S.Pd', nip:'197812252006041001', mapel:'IPS', hari:'Kamis' },
+  { nama:'Dewi Lestari, S.Pd', nip:'198209102009012001', mapel:'Bahasa Inggris', hari:'Jumat' }
+];
 
-                debugLog(`💾 Starting save process for ${attendanceData.length} records...`, 'info');
-                debugLog(`📊 Target Sheet ID: ${SHEET_ID}`, 'info');
-                debugLog(`🔗 Apps Script URL: ${APPS_SCRIPT_URL}`, 'info');
+let isOnlineMode = false;
+let currentUser = null;
 
-                try {
-                    // ULTIMATE SAVE SYSTEM - Multiple fallback strategies
-                    debugLog('🚀 ULTIMATE SAVE SYSTEM: Starting comprehensive save with fallback strategies...', 'info');
-                    
-                    // Strategy 1: Try Google Sheets save
-                    debugLog('📊 STRATEGY 1: Attempting Google Sheets save...', 'info');
-                    const result = await saveAttendanceToSheet(attendanceData);
-                    
-                    if (result.success) {
-                        debugLog(`🎉 GOOGLE SHEETS SAVE SUCCESS! Method ${result.method} worked!`, 'success');
-                        showNotification(`✅ BERHASIL! Absensi ${attendanceType} tersimpan ke Google Sheets! (${attendanceData.length} data) - Method ${result.method}`, 'success');
-                        updateConnectionStatus(true);
-                        
-                        // Also save to local backup for redundancy
-                        debugLog('💾 Creating local backup for redundancy...', 'info');
-                        localStorage.setItem(`backup_${Date.now()}`, JSON.stringify({
-                            timestamp: new Date().toISOString(),
-                            data: attendanceData,
-                            status: 'synced_to_sheets',
-                            method: result.method
-                        }));
-                        
-                    } else {
-                        debugLog(`💥 GOOGLE SHEETS SAVE FAILED: ${result.error}`, 'error');
-                        
-                        // Strategy 2: Local storage backup
-                        debugLog('💾 STRATEGY 2: Saving to local storage as backup...', 'info');
-                        const backupKey = `pending_save_${Date.now()}`;
-                        const backupData = {
-                            timestamp: new Date().toISOString(),
-                            data: attendanceData,
-                            status: 'pending_sync',
-                            attempts: result.totalAttempts || 0,
-                            lastError: result.error,
-                            retryCount: 0
-                        };
-                        
-                        localStorage.setItem(backupKey, JSON.stringify(backupData));
-                        debugLog(`💾 Data saved to local storage: ${backupKey}`, 'success');
-                        
-                        // Strategy 3: Show user-friendly message with retry option
-                        showNotification(`⚠️ Koneksi Google Sheets bermasalah. Data disimpan lokal dan akan otomatis sync nanti.`, 'warning');
-                        
-                        // Strategy 4: Schedule retry attempts
-                        debugLog('🔄 STRATEGY 4: Scheduling automatic retry...', 'info');
-                        setTimeout(async () => {
-                            debugLog('🔄 Attempting automatic retry...', 'info');
-                            try {
-                                const retryResult = await saveAttendanceToSheet(attendanceData);
-                                if (retryResult.success) {
-                                    debugLog('✅ Automatic retry SUCCESS!', 'success');
-                                    showNotification('✅ Data berhasil disinkronkan ke Google Sheets!', 'success');
-                                    localStorage.removeItem(backupKey);
-                                    updateConnectionStatus(true);
-                                } else {
-                                    debugLog('❌ Automatic retry failed', 'error');
-                                    // Update retry count
-                                    const updatedBackup = JSON.parse(localStorage.getItem(backupKey));
-                                    updatedBackup.retryCount++;
-                                    updatedBackup.lastRetry = new Date().toISOString();
-                                    localStorage.setItem(backupKey, JSON.stringify(updatedBackup));
-                                }
-                            } catch (retryError) {
-                                debugLog(`❌ Automatic retry error: ${retryError.message}`, 'error');
-                            }
-                        }, 30000); // Retry after 30 seconds
-                        
-                        updateConnectionStatus(false);
-                    }
-                    
-                } catch (error) {
-                    debugLog(`💥 CRITICAL ERROR in save process: ${error.message}`, 'error');
-                    debugLog(`🔍 Error stack: ${error.stack}`, 'error');
-                    
-                    // Emergency Strategy: Always save to local storage
-                    debugLog('🚨 EMERGENCY STRATEGY: Saving to local storage...', 'error');
-                    const emergencyKey = `emergency_save_${Date.now()}`;
-                    const emergencyData = {
-                        timestamp: new Date().toISOString(),
-                        data: attendanceData,
-                        status: 'emergency_backup',
-                        error: error.message,
-                        stack: error.stack
-                    };
-                    
-                    localStorage.setItem(emergencyKey, JSON.stringify(emergencyData));
-                    debugLog(`🚨 Emergency backup saved: ${emergencyKey}`, 'success');
-                    
-                    showNotification(`⚠️ Terjadi masalah teknis. Data disimpan sebagai backup lokal dan akan disinkronkan nanti.`, 'warning');
-                    updateConnectionStatus(false);
-                }
+// ===== Debug & Utils =====
+function debugLog(message, type='info'){
+  const consoleEl = document.getElementById('debugConsole');
+  const timestamp = new Date().toLocaleTimeString('id-ID');
+  const color = { info:'text-green-400', error:'text-red-400', warning:'text-yellow-400', success:'text-blue-400' }[type] || 'text-green-400';
+  const logEntry = document.createElement('div');
+  logEntry.className = color;
+  logEntry.innerHTML = `[${timestamp}] ${message}`;
+  consoleEl.appendChild(logEntry);
+  consoleEl.scrollTop = consoleEl.scrollHeight;
+}
+function showNotification(message, type='info'){
+  const n = document.createElement('div');
+  n.className = `notification px-4 py-3 rounded-lg text-white text-sm font-medium shadow-lg ${ type==='success'?'bg-green-500': type==='error'?'bg-red-500': type==='warning'?'bg-yellow-500':'bg-blue-500' }`;
+  n.textContent = message; document.body.appendChild(n);
+  setTimeout(()=>n.classList.add('show'), 100);
+  setTimeout(()=>{ n.classList.remove('show'); setTimeout(()=>n.remove(), 250); }, 2600);
+}
+function updateTime(){
+  const now = new Date();
+  const options = { weekday:'long', year:'numeric', month:'long', day:'numeric', hour:'2-digit', minute:'2-digit', timeZone:'Asia/Jakarta' };
+  document.getElementById('currentTime').textContent = now.toLocaleDateString('id-ID', options)+' WIB';
+}
+setInterval(updateTime, 1000);
+document.getElementById('togglePassword').addEventListener('click', ()=>{
+  const p = document.getElementById('password'); p.type = p.type==='password' ? 'text' : 'password';
+});
 
-                // Reset button
-                this.innerHTML = '💾 Simpan Absensi';
-                this.disabled = false;
-                
-                // Update statistics
-                updateStatistics();
-            });
-        }
+// ===== Koneksi =====
+async function testConnection(){
+  try {
+    const r = await fetch(APPS_SCRIPT_URL+`?action=test&ts=${Date.now()}`, { method:'GET', mode:'cors', cache:'no-cache' });
+    debugLog('Test status: '+r.status);
+    if(r.ok) {
+      isOnlineMode = true;
+      document.getElementById('connectionStatus').textContent = '✅ Mode Online - Google Sheets';
+      document.getElementById('connectionStatus').className = 'px-3 py-1 rounded-full text-white text-xs font-medium status-connected';
+      document.getElementById('currentModeDisplay').textContent = 'Online - Google Sheets';
+      return true;
+    }
+  } catch(e) { debugLog('Test failed: '+e.message, 'error'); }
+  isOnlineMode = false;
+  document.getElementById('connectionStatus').textContent = '📱 Mode Demo - Offline';
+  document.getElementById('connectionStatus').className = 'px-3 py-1 rounded-full text-white text-xs font-medium status-offline';
+  document.getElementById('currentModeDisplay').textContent = 'Demo Offline';
+  return false;
+}
 
-        function updateStatistics() {
-            // Generate random but realistic statistics
-            const stats = {
-                hadir: Math.floor(Math.random() * 50) + 800,
-                sakit: Math.floor(Math.random() * 20) + 15,
-                izin: Math.floor(Math.random() * 15) + 10,
-                alpha: Math.floor(Math.random() * 10) + 5,
-                bolos: Math.floor(Math.random() * 5) + 2
-            };
+// ===== Auth =====
+async function authenticateUser(username, password){
+  const demoUser = DEMO_USERS.find(u=>u.username===username && u.password===password);
+  if(demoUser) return { success:true, user: demoUser };
+  if(isOnlineMode) {
+    try {
+      const url = APPS_SCRIPT_URL+`?action=login&username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`;
+      const r = await fetch(url); const j = await r.json(); return j;
+    } catch(e) { debugLog('Online auth failed: '+e.message,'error'); }
+  }
+  return { success:false, error:'Invalid credentials' };
+}
 
-            document.getElementById('statHadir').textContent = stats.hadir;
-            document.getElementById('statSakit').textContent = stats.sakit;
-            document.getElementById('statIzin').textContent = stats.izin;
-            document.getElementById('statAlpha').textContent = stats.alpha;
-            document.getElementById('statBolos').textContent = stats.bolos;
+// ===== Data Load (offline demo; bisa diganti online getData) =====
+async function loadData(){
+  let students = DEMO_STUDENTS;
+  let teachers = DEMO_TEACHERS;
 
-            // Update teacher stats
-            document.getElementById('guruHadir').textContent = Math.floor(Math.random() * 5) + 25;
-            document.getElementById('guruIzin').textContent = Math.floor(Math.random() * 3) + 1;
-            document.getElementById('guruSakit').textContent = Math.floor(Math.random() * 2);
-            document.getElementById('guruAlpha').textContent = Math.floor(Math.random() * 1);
-        }
+  if(isOnlineMode) {
+    try {
+      const rs = await fetch(APPS_SCRIPT_URL+`?action=getData&sheet=Siswa`); const sj = await rs.json(); if(sj.success && sj.data && sj.data.length) students = sj.data;
+      const rt = await fetch(APPS_SCRIPT_URL+`?action=getData&sheet=JadwalGuru`); const tj = await rt.json(); if(tj.success && tj.data && tj.data.length) teachers = tj.data;
+    } catch(e) { debugLog('Load online data failed: '+e.message, 'error'); }
+  }
 
-        function generateReport() {
-            const startDate = document.getElementById('reportStartDate').value;
-            const endDate = document.getElementById('reportEndDate').value;
-            const selectedClass = document.getElementById('reportClass').value;
+  const sc = document.getElementById('studentsContainer'); sc.innerHTML='';
+  students.forEach(student=>{
+    const div = document.createElement('div'); div.className='flex items-center justify-between p-3 bg-gray-50 rounded-lg';
+    div.innerHTML = `<div><p class='font-medium text-sm'>${student.nama}</p><p class='text-xs text-gray-500'>NIS: ${student.nis||'-'}</p></div><span class='bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs'>${student.kelas||'-'}</span>`;
+    sc.appendChild(div);
+  });
 
-            if (!startDate || !endDate) {
-                showNotification('❌ Pilih tanggal mulai dan akhir!', 'error');
-                return;
-            }
+  const tc = document.getElementById('teachersContainer'); tc.innerHTML='';
+  teachers.forEach(teacher=>{
+    const div = document.createElement('div'); div.className='flex items-center justify-between p-3 bg-gray-50 rounded-lg';
+    div.innerHTML = `<div><p class='font-medium text-sm'>${teacher.nama}</p><p class='text-xs text-gray-500'>NIP: ${teacher.nip||'-'} | ${teacher.mapel||'-'}</p></div><span class='bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs'>${teacher.hari||'-'}</span>`;
+    tc.appendChild(div);
+  });
 
-            const container = document.getElementById('reportContainer');
-            
-            // Generate sample report data
-            const reportData = DEMO_STUDENTS
-                .filter(student => selectedClass === 'Semua' || student.kelas === selectedClass)
-                .map(student => ({
-                    nama: student.nama,
-                    kelas: student.kelas,
-                    hadir: Math.floor(Math.random() * 5) + 15,
-                    izin: Math.floor(Math.random() * 3),
-                    sakit: Math.floor(Math.random() * 2),
-                    alpha: Math.floor(Math.random() * 2),
-                    total: 20
-                }))
-                .map(data => ({
-                    ...data,
-                    persentase: Math.round((data.hadir / data.total) * 100)
-                }));
+  window.currentStudents = students;
+  window.currentTeachers = teachers;
+  debugLog(`✅ Data loaded: ${students.length} siswa, ${teachers.length} guru`, 'success');
+}
 
-            container.innerHTML = `
-                <div class="mb-4">
-                    <h4 class="font-medium text-gray-900 mb-2">Laporan Absensi</h4>
-                    <p class="text-sm text-gray-600">Periode: ${startDate} - ${endDate} | Kelas: ${selectedClass}</p>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="min-w-full">
-                        <thead>
-                            <tr class="border-b border-gray-200">
-                                <th class="text-left py-2 text-xs font-medium text-gray-500 uppercase">Nama</th>
-                                <th class="text-left py-2 text-xs font-medium text-gray-500 uppercase">Kelas</th>
-                                <th class="text-left py-2 text-xs font-medium text-gray-500 uppercase">Hadir</th>
-                                <th class="text-left py-2 text-xs font-medium text-gray-500 uppercase">Izin</th>
-                                <th class="text-left py-2 text-xs font-medium text-gray-500 uppercase">Sakit</th>
-                                <th class="text-left py-2 text-xs font-medium text-gray-500 uppercase">Alpha</th>
-                                <th class="text-left py-2 text-xs font-medium text-gray-500 uppercase">Persentase</th>
-                            </tr>
-                        </thead>
-                        <tbody class="text-sm">
-                            ${reportData.map(row => `
-                                <tr class="border-b border-gray-100">
-                                    <td class="py-2">${row.nama}</td>
-                                    <td class="py-2">${row.kelas}</td>
-                                    <td class="py-2">${row.hadir}</td>
-                                    <td class="py-2">${row.izin}</td>
-                                    <td class="py-2">${row.sakit}</td>
-                                    <td class="py-2">${row.alpha}</td>
-                                    <td class="py-2">
-                                        <span class="${row.persentase >= 80 ? 'bg-green-100 text-green-800' : 
-                                                     row.persentase >= 60 ? 'bg-yellow-100 text-yellow-800' : 
-                                                     'bg-red-100 text-red-800'} px-2 py-1 rounded-full text-xs">
-                                            ${row.persentase}%
-                                        </span>
-                                    </td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                </div>
-                <div class="mt-4 flex space-x-2">
-                    <button class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm transition duration-200">
-                        📥 Download Excel
-                    </button>
-                    <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm transition duration-200">
-                        📄 Download PDF
-                    </button>
-                </div>
-            `;
+// ===== Absensi =====
+function loadAttendanceForm(){
+  const selectedClass = document.getElementById('attendanceClass').value;
+  const attendanceType = document.getElementById('attendanceType').value;
+  const container = document.getElementById('attendanceFormContainer');
 
-            showNotification('✅ Laporan berhasil dibuat!', 'success');
-        }
+  let data = [];
+  if(attendanceType==='Siswa') data = (window.currentStudents || DEMO_STUDENTS).filter(s=>s.kelas===selectedClass);
+  else data = window.currentTeachers || DEMO_TEACHERS;
 
-        // Event Listeners
-        document.addEventListener('DOMContentLoaded', function() {
-            // Set today's date
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('attendanceDate').value = today;
-            document.getElementById('reportStartDate').value = today;
-            document.getElementById('reportEndDate').value = today;
+  container.innerHTML = `
+    <div class='flex justify-between items-center mb-4'>
+      <h4 class='font-medium text-gray-900'>Daftar ${attendanceType} ${attendanceType==='Siswa' ? 'Kelas '+selectedClass : ''}</h4>
+      <div class='space-x-2'>
+        <button id='setAllPresentBtn' class='bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm'>✅ Semua Hadir</button>
+        <button id='saveAttendanceBtn' class='bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm'>💾 Simpan Absensi</button>
+      </div>
+    </div>
+    <div class='grid grid-cols-1 md:grid-cols-2 gap-4' id='attendanceList'>
+      ${data.map(item=>`
+        <div class='flex items-center justify-between p-3 bg-gray-50 rounded-lg'>
+          <span class='text-sm'>${item.nama} (${attendanceType==='Siswa' ? (item.nis||'-') : (item.nip||'-')})</span>
+          <select class='px-2 py-1 border border-gray-300 rounded text-xs attendance-select' data-name='${item.nama}' data-id='${attendanceType==='Siswa' ? (item.nis||'') : (item.nip||'')}' data-kelas='${item.kelas||''}'>
+            <option value='Hadir'>Hadir</option>
+            <option value='Sakit'>Sakit</option>
+            <option value='Izin'>Izin</option>
+            <option value='Alpha'>Alpha</option>
+            ${attendanceType==='Siswa' ? '<option value="Bolos">Bolos</option>' : ''}
+          </select>
+        </div>
+      `).join('')}
+    </div>
+    <div class='mt-4 p-3 bg-blue-50 rounded-lg'><p class='text-sm text-blue-700'>👨‍🏫 Petugas: ${currentUser ? currentUser.nama : 'Administrator'}</p></div>`;
 
-            // Update time
-            updateTime();
-            setInterval(updateTime, 1000);
+  document.getElementById('setAllPresentBtn').addEventListener('click', ()=>{
+    document.querySelectorAll('.attendance-select').forEach(s=>s.value='Hadir');
+    showNotification('✅ Semua status diset ke Hadir', 'success');
+  });
+  document.getElementById('saveAttendanceBtn').addEventListener('click', onSaveAttendance);
+}
 
-            // Set initial connection status
-            updateConnectionStatus(false);
+async function saveAttendanceToSheet(attendanceData){
+  debugLog(`💾 Mengirim ${attendanceData.length} baris ke Google Sheets...`,'info');
+  try {
+    const response = await fetch(APPS_SCRIPT_URL, {
+      method:'POST', mode:'cors', cache:'no-cache',
+      headers:{'Content-Type':'application/json','Accept':'application/json, text/plain, */*'},
+      body: JSON.stringify({ action:'saveAttendance', sheetId:SHEET_ID, data: attendanceData })
+    });
+    const text = await response.text();
+    debugLog(`📥 Raw response: ${text}`,'info');
+    let ok=false; try{ ok = JSON.parse(text).success===true; }catch{ ok = /success|ok|saved|appended/i.test(text); }
+    if(ok) return { success:true };
+    throw new Error('Response tidak valid: '+text.substring(0,120));
+  } catch(err) {
+    debugLog('❌ Save error: '+err.message,'error');
+    return { success:false, error: err.message };
+  }
+}
 
-            // Initialize data loading
-            loadData();
-            updateStatistics();
+async function onSaveAttendance(){
+  const selectedDate = document.getElementById('attendanceDate').value;
+  const attendanceType = document.getElementById('attendanceType').value;
+  const selectedClass = document.getElementById('attendanceClass').value;
+  if(!selectedDate) return showNotification('❌ Pilih tanggal terlebih dahulu!','error');
+  const selects = document.querySelectorAll('.attendance-select');
+  const rows = Array.from(selects).map(select=>({
+    tanggal: selectedDate,
+    kelas: attendanceType==='Siswa' ? (select.dataset.kelas || selectedClass) : '',
+    jenisAbsensi: attendanceType,
+    nama: select.dataset.name,
+    identifier: select.dataset.id,
+    status: select.value,
+    timestamp: new Date().toISOString(),
+    savedBy: currentUser ? currentUser.nama : 'Administrator'
+  }));
 
-            // Initialize debug console
-            debugLog('🚀 System initialized', 'success');
-            debugLog(`📊 Sheet ID: ${SHEET_ID}`, 'info');
-            debugLog(`🔗 Apps Script URL: ${APPS_SCRIPT_URL}`, 'info');
+  const btn = document.getElementById('saveAttendanceBtn');
+  btn.disabled = true; btn.textContent = '💾 Menyimpan...';
 
-            // Auto-test connection on page load
-            setTimeout(async () => {
-                try {
-                    const connectionOk = await testConnection();
-                    updateConnectionStatus(connectionOk);
-                    if (connectionOk) {
-                        showNotification('🔗 Terhubung ke Google Sheets!', 'success');
-                    }
-                } catch (error) {
-                    debugLog('Auto connection test failed, staying in demo mode', 'warning');
-                }
-            }, 2000);
-        });
+  const online = await testConnection();
+  const result = online ? await saveAttendanceToSheet(rows) : { success:false };
 
-        // Login form
-        document.getElementById('loginForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-            
-            const submitBtn = this.querySelector('button[type="submit"]');
-            const originalText = submitBtn.innerHTML;
-            submitBtn.innerHTML = '🔄 Memverifikasi...';
-            submitBtn.disabled = true;
-            
-            try {
-                const authResult = await authenticateUser(username, password);
-                
-                if (authResult.success) {
-                    currentUser = authResult.user;
-                    document.getElementById('loginSection').classList.add('hidden');
-                    document.getElementById('dashboardSection').classList.remove('hidden');
-                    document.getElementById('userDisplay').textContent = currentUser.nama;
-                    
-                    // Load data after successful login
-                    await loadData();
-                    
-                    const modeText = isOnlineMode ? 'Mode Online' : 'Mode Demo';
-                    showNotification(`✅ Selamat datang, ${currentUser.nama}! (${modeText})`, 'success');
-                } else {
-                    document.getElementById('loginError').classList.remove('hidden');
-                    setTimeout(() => {
-                        document.getElementById('loginError').classList.add('hidden');
-                    }, 3000);
-                }
-            } catch (error) {
-                console.error('Login error:', error);
-                showNotification('❌ Terjadi kesalahan saat login', 'error');
-            }
-            
-            submitBtn.innerHTML = originalText;
-            submitBtn.disabled = false;
-        });
+  if(result.success){
+    showNotification(`✅ BERHASIL! Absensi ${attendanceType} tersimpan ke Google Sheets! (${rows.length} data)`, 'success');
+    localStorage.setItem(`backup_${Date.now()}`, JSON.stringify({ ts:new Date().toISOString(), data: rows, status:'synced' }));
+  } else {
+    const k = `pending_${Date.now()}`;
+    localStorage.setItem(k, JSON.stringify({ ts:new Date().toISOString(), data: rows, status:'pending' }));
+    showNotification('⚠️ Koneksi bermasalah. Data disimpan lokal & akan otomatis sync nanti.', 'warning');
+  }
 
-        // Toggle password visibility
-        document.getElementById('togglePassword').addEventListener('click', function() {
-            const passwordInput = document.getElementById('password');
-            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-            passwordInput.setAttribute('type', type);
-        });
+  btn.disabled = false; btn.textContent = '💾 Simpan Absensi';
+  updateStatistics();
+  addRecentActivity('Data absensi tersimpan.', result.success ? '✅' : '⚠️');
+}
 
-        // Logout
-        document.getElementById('logoutBtn').addEventListener('click', function() {
-            document.getElementById('dashboardSection').classList.add('hidden');
-            document.getElementById('loginSection').classList.remove('hidden');
-            document.getElementById('username').value = 'admin';
-            document.getElementById('password').value = 'admin123';
-            currentUser = null;
-            showNotification('👋 Berhasil logout', 'info');
-        });
+// ===== Backups Viewer & Sync =====
+function showBackups(){
+  const keys = Object.keys(localStorage).filter(k=>k.startsWith('backup_')||k.startsWith('pending_')).sort();
+  const lines = keys.map(k=>{ const v = JSON.parse(localStorage.getItem(k)||'null'); const n=(v&&v.data)?v.data.length:0; return `• ${k} — ${n} baris — ${v&&v.status}`; });
+  alert(lines.length? ['Daftar backup/pending:', ...lines].join('\n') : 'Tidak ada backup/pending');
+}
+async function syncPending(){
+  const keys = Object.keys(localStorage).filter(k=>k.startsWith('pending_'));
+  if(!keys.length) return showNotification('Tidak ada data pending','info');
+  const online = await testConnection(); if(!online) return showNotification('Masih offline','warning');
+  let sent=0, fail=0;
+  for(const k of keys){
+    const obj = JSON.parse(localStorage.getItem(k)||'{}'); const rows = obj.data||[];
+    if(!rows.length) continue;
+    const ok = await saveAttendanceToSheet(rows);
+    if(ok.success){ localStorage.removeItem(k); sent += rows.length; localStorage.setItem(`backup_${Date.now()}`, JSON.stringify({ts:new Date().toISOString(), data: rows, status:'synced'})); }
+    else fail += rows.length;
+  }
+  showNotification(`Sync selesai. Terkirim: ${sent} • Gagal: ${fail}`, fail?'warning':'success');
+}
 
-        // Tab navigation
-        document.querySelectorAll('.tab-btn').forEach(button => {
-            button.addEventListener('click', function() {
-                const tabName = this.getAttribute('data-tab');
-                
-                // Update tab buttons
-                document.querySelectorAll('.tab-btn').forEach(btn => {
-                    btn.classList.remove('tab-active');
-                    btn.classList.add('text-gray-500', 'hover:text-gray-700');
-                });
-                this.classList.add('tab-active');
-                this.classList.remove('text-gray-500', 'hover:text-gray-700');
-                
-                // Update tab content
-                document.querySelectorAll('.tab-content').forEach(content => {
-                    content.classList.add('hidden');
-                });
-                document.getElementById(tabName + 'Tab').classList.remove('hidden');
-            });
-        });
+// ===== Laporan (dummy generator) =====
+function generateReport(){
+  const s = document.getElementById('reportStartDate').value;
+  const e = document.getElementById('reportEndDate').value;
+  const c = document.getElementById('reportClass').value;
+  if(!s||!e) return showNotification('❌ Pilih tanggal mulai & akhir','error');
+  const data = (window.currentStudents||DEMO_STUDENTS).filter(x=>c==='Semua'||x.kelas===c).map(st=>({
+    nama: st.nama, kelas: st.kelas, hadir: Math.floor(Math.random()*5)+15, izin: Math.floor(Math.random()*3), sakit: Math.floor(Math.random()*2), alpha: Math.floor(Math.random()*2), total: 20
+  }));
+  const html = [`<div class='mb-3'><h4 class='font-medium'>Laporan Absensi</h4><p class='text-sm text-gray-600'>Periode: ${s} — ${e} | Kelas: ${c}</p></div>`,
+  `<div class='overflow-x-auto'><table class='min-w-full'><thead><tr class='border-b'>`+
+  `<th class='text-left py-2 text-xs'>Nama</th><th class='text-left py-2 text-xs'>Kelas</th><th class='text-left py-2 text-xs'>Hadir</th><th class='text-left py-2 text-xs'>Izin</th><th class='text-left py-2 text-xs'>Sakit</th><th class='text-left py-2 text-xs'>Alpha</th><th class='text-left py-2 text-xs'>%</th>`+
+  `</tr></thead><tbody>`+
+  data.map(d=>{ const p=Math.round((d.hadir/d.total)*100); return `<tr class='border-b'><td class='py-2 text-sm'>${d.nama}</td><td class='py-2 text-sm'>${d.kelas}</td><td class='py-2 text-sm'>${d.hadir}</td><td class='py-2 text-sm'>${d.izin}</td><td class='py-2 text-sm'>${d.sakit}</td><td class='py-2 text-sm'>${d.alpha}</td><td class='py-2 text-sm'>${p}%</td></tr>`; }).join('')+
+  `</tbody></table></div>`].join('');
+  document.getElementById('reportContainer').innerHTML = html;
+}
 
-        // Load attendance data
-        document.getElementById('loadAttendanceBtn').addEventListener('click', function() {
-            const selectedDate = document.getElementById('attendanceDate').value;
-            if (!selectedDate) {
-                showNotification('❌ Pilih tanggal terlebih dahulu!', 'error');
-                return;
-            }
-            
-            this.innerHTML = '🔄 Memuat...';
-            this.disabled = true;
-            
-            setTimeout(() => {
-                loadAttendanceForm();
-                this.innerHTML = '📋 Muat Data';
-                this.disabled = false;
-                showNotification('✅ Data berhasil dimuat!', 'success');
-            }, 1000);
-        });
+// ===== Dashboard helpers =====
+function updateStatistics(){
+  const rand=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+  document.getElementById('statHadir').textContent = rand(820, 870);
+  document.getElementById('statSakit').textContent = rand(10, 25);
+  document.getElementById('statIzin').textContent  = rand(8, 20);
+  document.getElementById('statAlpha').textContent = rand(2, 12);
+  document.getElementById('statBolos').textContent = rand(1, 5);
+  document.getElementById('guruHadir').textContent = rand(24, 32);
+  document.getElementById('guruIzin').textContent  = rand(1, 4);
+  document.getElementById('guruSakit').textContent = rand(0, 2);
+  document.getElementById('guruAlpha').textContent = rand(0, 1);
+}
+function addRecentActivity(text, icon='📝'){
+  const c = document.getElementById('recentActivity');
+  const d = document.createElement('div');
+  d.className = 'flex items-center space-x-3 p-3 bg-gray-50 rounded-lg';
+  d.innerHTML = `<span>${icon}</span><div class='flex-1'><p class='text-sm font-medium'>${text}</p><p class='text-xs text-gray-500'>${new Date().toLocaleTimeString('id-ID')} WIB</p></div>`;
+  c.prepend(d);
+}
 
-        // Generate report
-        document.getElementById('generateReportBtn').addEventListener('click', function() {
-            this.innerHTML = '🔄 Generating...';
-            this.disabled = true;
-            
-            setTimeout(() => {
-                generateReport();
-                this.innerHTML = '📈 Generate Laporan';
-                this.disabled = false;
-            }, 1500);
-        });
+// ===== Event Bindings =====
+document.getElementById('testConnectionBtn').addEventListener('click', testConnection);
+document.getElementById('syncDataBtn').addEventListener('click', syncPending);
+document.getElementById('syncPendingBtn').addEventListener('click', syncPending);
+document.getElementById('showBackupsBtn').addEventListener('click', showBackups);
+document.getElementById('showDebugBtn').addEventListener('click', ()=>showNotification('Buka console (F12) untuk detail log','info'));
+document.getElementById('clearDebugBtn').addEventListener('click', ()=>document.getElementById('debugConsole').innerHTML='');
+document.getElementById('generateReportBtn').addEventListener('click', generateReport);
 
-        // Setup tab functions
-        document.getElementById('testConnectionBtn').addEventListener('click', async function() {
-            this.innerHTML = '🔄 Testing...';
-            this.disabled = true;
-            
-            try {
-                const success = await testConnection();
-                updateConnectionStatus(success);
-                
-                if (success) {
-                    showNotification('✅ Koneksi Google Sheets berhasil!', 'success');
-                    // Reload data in online mode
-                    await loadData();
-                } else {
-                    showNotification('❌ Koneksi gagal - Mode demo aktif', 'warning');
-                }
-            } catch (error) {
-                console.error('Connection test error:', error);
-                updateConnectionStatus(false);
-                showNotification('❌ Koneksi gagal - Mode demo aktif', 'warning');
-            }
-            
-            this.innerHTML = '🔄 Test Koneksi';
-            this.disabled = false;
-        });
+document.getElementById('logoutBtn').addEventListener('click',()=>{
+  document.getElementById('dashboardSection').classList.add('hidden');
+  document.getElementById('loginSection').classList.remove('hidden');
+});
 
-        document.getElementById('syncDataBtn').addEventListener('click', async function() {
-            this.innerHTML = '🔄 Syncing...';
-            this.disabled = true;
-            
-            try {
-                if (isOnlineMode) {
-                    // Test connection first
-                    const connectionOk = await testConnection();
-                    if (connectionOk) {
-                        // Reload all data from sheets
-                        await loadData();
-                        showNotification('✅ Sinkronisasi data berhasil!', 'success');
-                    } else {
-                        showNotification('❌ Koneksi gagal - tidak dapat sinkronisasi', 'error');
-                    }
-                } else {
-                    showNotification('🔄 Sinkronisasi selesai (mode demo)', 'info');
-                }
-            } catch (error) {
-                console.error('Sync error:', error);
-                showNotification('❌ Terjadi kesalahan saat sinkronisasi', 'error');
-            }
-            
-            this.innerHTML = '🔄 Sinkronisasi Data';
-            this.disabled = false;
-        });
+Array.from(document.getElementsByClassName('tab-btn')).forEach(btn=>btn.addEventListener('click',()=>{
+  Array.from(document.getElementsByClassName('tab-btn')).forEach(b=>b.classList.remove('tab-active'));
+  btn.classList.add('tab-active');
+  const tab = btn.dataset.tab;
+  Array.from(document.getElementsByClassName('tab-content')).forEach(c=>c.classList.add('hidden'));
+  document.getElementById(tab+'Tab').classList.remove('hidden');
+}));
 
-        document.getElementById('showDebugBtn').addEventListener('click', function() {
-            const debugInfo = {
-                sheetId: SHEET_ID,
-                appsScriptUrl: APPS_SCRIPT_URL,
-                isOnlineMode: isOnlineMode,
-                currentUser: currentUser,
-                demoStudents: DEMO_STUDENTS.length,
-                demoTeachers: DEMO_TEACHERS.length,
-                timestamp: new Date().toISOString()
-            };
-            
-            debugLog(`🔍 Debug Info: ${JSON.stringify(debugInfo, null, 2)}`, 'info');
-            showNotification('🔍 Debug info ditampilkan di console', 'info');
-        });
+document.getElementById('loginForm').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const u = document.getElementById('username').value.trim();
+  const p = document.getElementById('password').value.trim();
+  await testConnection();
+  const res = await authenticateUser(u,p);
+  if(res.success){
+    currentUser = res.user;
+    document.getElementById('loginSection').classList.add('hidden');
+    document.getElementById('dashboardSection').classList.remove('hidden');
+    document.getElementById('userDisplay').textContent = currentUser.nama;
+    loadData(); updateStatistics(); updateTime();
+  } else {
+    document.getElementById('loginError').classList.remove('hidden');
+  }
+});
 
-        // Debug console controls
-        document.getElementById('clearDebugBtn').addEventListener('click', function() {
-            document.getElementById('debugConsole').innerHTML = '<div class="text-gray-500">Debug console cleared...</div>';
-        });
+document.getElementById('loadAttendanceBtn').addEventListener('click', loadAttendanceForm);
 
-        document.getElementById('testSaveBtn').addEventListener('click', async function() {
-            debugLog('🧪 ULTIMATE FORCE TEST: Starting comprehensive save test...', 'info');
-            
-            this.innerHTML = '🧪 Testing...';
-            this.disabled = true;
-            
-            // Step 1: Basic connectivity test
-            debugLog('🔍 STEP 1: Testing basic connectivity to Apps Script...', 'info');
-            try {
-                const basicResponse = await fetch(APPS_SCRIPT_URL, {
-                    method: 'GET',
-                    mode: 'cors'
-                });
-                debugLog(`📡 Basic connectivity: ${basicResponse.status} ${basicResponse.statusText}`, 'info');
-                
-                const basicText = await basicResponse.text();
-                debugLog(`📥 Basic response: ${basicText.substring(0, 200)}...`, 'info');
-            } catch (error) {
-                debugLog(`❌ Basic connectivity FAILED: ${error.message}`, 'error');
-            }
-            
-            // Step 2: Test with simple parameters
-            debugLog('🔍 STEP 2: Testing with simple GET parameters...', 'info');
-            try {
-                const simpleUrl = `${APPS_SCRIPT_URL}?test=true&timestamp=${Date.now()}`;
-                const simpleResponse = await fetch(simpleUrl, {
-                    method: 'GET',
-                    mode: 'cors'
-                });
-                debugLog(`📡 Simple GET: ${simpleResponse.status} ${simpleResponse.statusText}`, 'info');
-                
-                const simpleText = await simpleResponse.text();
-                debugLog(`📥 Simple GET response: ${simpleText}`, 'info');
-            } catch (error) {
-                debugLog(`❌ Simple GET FAILED: ${error.message}`, 'error');
-            }
-            
-            // Step 3: Test POST with minimal data
-            debugLog('🔍 STEP 3: Testing POST with minimal data...', 'info');
-            try {
-                const minimalData = { test: true, timestamp: Date.now() };
-                const minimalResponse = await fetch(APPS_SCRIPT_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(minimalData)
-                });
-                debugLog(`📡 Minimal POST: ${minimalResponse.status} ${minimalResponse.statusText}`, 'info');
-                
-                const minimalText = await minimalResponse.text();
-                debugLog(`📥 Minimal POST response: ${minimalText}`, 'info');
-            } catch (error) {
-                debugLog(`❌ Minimal POST FAILED: ${error.message}`, 'error');
-            }
-            
-            // Step 4: Full save test
-            debugLog('🔍 STEP 4: Full attendance save test...', 'info');
-            
-            const testData = [{
-                tanggal: new Date().toISOString().split('T')[0],
-                nama: 'Test Student - Ultimate Force Save',
-                identifier: 'ULTIMATE001',
-                kelas: '7A',
-                jenisAbsensi: 'Siswa',
-                status: 'Hadir',
-                timestamp: new Date().toISOString(),
-                savedBy: currentUser ? currentUser.nama : 'Ultimate Test User'
-            }];
-            
-            try {
-                debugLog('🚀 ULTIMATE FORCE TEST: Executing all 5 save methods...', 'info');
-                
-                const result = await saveAttendanceToSheet(testData);
-                
-                if (result.success) {
-                    debugLog(`🎉 ULTIMATE SUCCESS! ${result.successCount || 1} method(s) worked!`, 'success');
-                    showNotification(`✅ ULTIMATE TEST BERHASIL! ${result.successCount || 1} metode berhasil menyimpan ke Google Sheets!`, 'success');
-                    updateConnectionStatus(true);
-                    
-                    // Additional success verification
-                    debugLog('🔍 SUCCESS VERIFICATION: Attempting to read back data...', 'info');
-                    try {
-                        const verifyResponse = await fetch(`${APPS_SCRIPT_URL}?action=getData&sheet=Absensi&limit=5`, {
-                            method: 'GET'
-                        });
-                        const verifyText = await verifyResponse.text();
-                        debugLog(`📊 Verification response: ${verifyText}`, 'info');
-                    } catch (verifyError) {
-                        debugLog(`⚠️ Verification failed: ${verifyError.message}`, 'warning');
-                    }
-                    
-                } else {
-                    debugLog(`💥 ULTIMATE TEST FAILED: ${result.error}`, 'error');
-                    showNotification(`❌ ULTIMATE TEST GAGAL: ${result.error}`, 'error');
-                    
-                    // Enhanced diagnostic
-                    debugLog('🔍 ENHANCED DIAGNOSTIC: Analyzing failure...', 'info');
-                    debugLog(`📊 Sheet ID: ${SHEET_ID}`, 'info');
-                    debugLog(`🔗 Apps Script URL: ${APPS_SCRIPT_URL}`, 'info');
-                    debugLog(`🔍 Total attempts: ${result.totalAttempts}`, 'info');
-                    
-                    // Test if the URL is accessible at all
-                    debugLog('🔍 Testing URL accessibility...', 'info');
-                    try {
-                        const urlTest = await fetch(APPS_SCRIPT_URL.replace('/exec', ''), {
-                            method: 'GET',
-                            mode: 'no-cors'
-                        });
-                        debugLog(`📡 URL accessibility test completed`, 'info');
-                    } catch (urlError) {
-                        debugLog(`❌ URL not accessible: ${urlError.message}`, 'error');
-                    }
-                    
-                    showNotification('🔍 Periksa debug console untuk analisis lengkap', 'warning');
-                }
-                
-            } catch (error) {
-                debugLog(`💥 ULTIMATE TEST CRITICAL ERROR: ${error.message}`, 'error');
-                debugLog(`🔍 Error stack: ${error.stack}`, 'error');
-                showNotification(`💥 ULTIMATE TEST ERROR: ${error.message}`, 'error');
-                
-                // Final diagnostic
-                debugLog('🔍 FINAL DIAGNOSTIC: System status check...', 'info');
-                debugLog(`🌐 Navigator online: ${navigator.onLine}`, 'info');
-                debugLog(`🔗 Current URL: ${window.location.href}`, 'info');
-                debugLog(`📱 User agent: ${navigator.userAgent}`, 'info');
-            }
-            
-            this.innerHTML = '🧪 Test Save';
-            this.disabled = false;
-        });
-
-        // Sync pending data button
-        document.getElementById('syncPendingBtn').addEventListener('click', async function() {
-            this.innerHTML = '📤 Syncing...';
-            this.disabled = true;
-            
-            debugLog('📤 SYNC PENDING: Starting sync of pending data...', 'info');
-            
-            // Get all pending saves from localStorage
-            const pendingKeys = Object.keys(localStorage).filter(key => 
-                key.startsWith('pending_save_') || key.startsWith('emergency_save_')
-            );
-            
-            debugLog(`📊 Found ${pendingKeys.length} pending saves`, 'info');
-            
-            if (pendingKeys.length === 0) {
-                showNotification('✅ Tidak ada data pending untuk disinkronkan', 'info');
-                this.innerHTML = '📤 Sync Pending Data';
-                this.disabled = false;
-                return;
-            }
-            
-            let successCount = 0;
-            let failCount = 0;
-            
-            for (const key of pendingKeys) {
-                try {
-                    const backupData = JSON.parse(localStorage.getItem(key));
-                    debugLog(`🔄 Syncing ${key}...`, 'info');
-                    
-                    const result = await saveAttendanceToSheet(backupData.data);
-                    
-                    if (result.success) {
-                        successCount++;
-                        localStorage.removeItem(key);
-                        debugLog(`✅ Successfully synced ${key}`, 'success');
-                    } else {
-                        failCount++;
-                        // Update retry count
-                        backupData.retryCount = (backupData.retryCount || 0) + 1;
-                        backupData.lastRetry = new Date().toISOString();
-                        localStorage.setItem(key, JSON.stringify(backupData));
-                        debugLog(`❌ Failed to sync ${key}`, 'error');
-                    }
-                } catch (error) {
-                    failCount++;
-                    debugLog(`💥 Error syncing ${key}: ${error.message}`, 'error');
-                }
-                
-                // Small delay between syncs
-                await new Promise(resolve => setTimeout(resolve, 1000));
-            }
-            
-            if (successCount > 0) {
-                showNotification(`✅ Berhasil sync ${successCount} data ke Google Sheets!`, 'success');
-                updateConnectionStatus(true);
-            }
-            
-            if (failCount > 0) {
-                showNotification(`⚠️ ${failCount} data gagal disync. Akan dicoba lagi nanti.`, 'warning');
-            }
-            
-            debugLog(`📊 Sync complete: ${successCount} success, ${failCount} failed`, 'info');
-            
-            this.innerHTML = '📤 Sync Pending Data';
-            this.disabled = false;
-        });
-
-        // Show backups button
-        document.getElementById('showBackupsBtn').addEventListener('click', function() {
-            const backupKeys = Object.keys(localStorage).filter(key => 
-                key.startsWith('backup_') || 
-                key.startsWith('pending_save_') || 
-                key.startsWith('emergency_save_')
-            );
-            
-            debugLog(`💾 BACKUP ANALYSIS: Found ${backupKeys.length} backup entries`, 'info');
-            
-            backupKeys.forEach(key => {
-                try {
-                    const backupData = JSON.parse(localStorage.getItem(key));
-                    debugLog(`💾 ${key}:`, 'info');
-                    debugLog(`   📅 Timestamp: ${backupData.timestamp}`, 'info');
-                    debugLog(`   📊 Records: ${backupData.data ? backupData.data.length : 'N/A'}`, 'info');
-                    debugLog(`   🔄 Status: ${backupData.status}`, 'info');
-                    debugLog(`   🔁 Retry count: ${backupData.retryCount || 0}`, 'info');
-                    if (backupData.lastError) {
-                        debugLog(`   ❌ Last error: ${backupData.lastError}`, 'error');
-                    }
-                } catch (error) {
-                    debugLog(`💥 Error reading backup ${key}: ${error.message}`, 'error');
-                }
-            });
-            
-            showNotification(`💾 Ditemukan ${backupKeys.length} backup. Lihat debug console untuk detail.`, 'info');
-        });
-    </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'995a543502b29509',t:'MTc2MTY1MzQxNS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+// Autosync saat load & ketika kembali online
+window.addEventListener('load', ()=>{ testConnection(); setTimeout(syncPending, 1500); });
+window.addEventListener('online', ()=>{ debugLog('Back online → autosync'); syncPending(); });
+</script>
+</body>
 </html>
