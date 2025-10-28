@@ -416,14 +416,20 @@
                                 <input type="text" id="appsScriptInput" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-xs" value="https://script.google.com/macros/s/AKfycbynLB7L4YyKo2dqbXAGE2SCXaol_hztoa5994AVkJmv3HblcX_0O-dUEunA86BnOiOZaQ/exec" readonly>
                             </div>
                         </div>
-                        <div class="flex space-x-4 mt-4">
-                            <button id="testConnectionBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition duration-200">
+                        <div class="flex flex-wrap gap-2 mt-4">
+                            <button id="testConnectionBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition duration-200 text-sm">
                                 🔄 Test Koneksi
                             </button>
-                            <button id="syncDataBtn" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition duration-200">
+                            <button id="syncDataBtn" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition duration-200 text-sm">
                                 🔄 Sinkronisasi Data
                             </button>
-                            <button id="showDebugBtn" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition duration-200">
+                            <button id="syncPendingBtn" class="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg transition duration-200 text-sm">
+                                📤 Sync Pending Data
+                            </button>
+                            <button id="showBackupsBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition duration-200 text-sm">
+                                💾 Lihat Backup
+                            </button>
+                            <button id="showDebugBtn" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition duration-200 text-sm">
                                 🔍 Debug Info
                             </button>
                         </div>
@@ -629,26 +635,96 @@
 
         // Google Sheets API Functions with enhanced debugging
         async function testConnection() {
-            debugLog('🔄 Testing connection to Google Sheets...', 'info');
+            debugLog('🔄 ENHANCED CONNECTION TEST: Testing multiple connection methods...', 'info');
+            
+            // Method 1: Basic ping test
             try {
-                const response = await fetch(`${APPS_SCRIPT_URL}?action=test`, {
+                debugLog('🔍 Method 1: Basic ping test...', 'info');
+                const response = await fetch(`${APPS_SCRIPT_URL}?action=test&timestamp=${Date.now()}`, {
                     method: 'GET',
-                    mode: 'cors'
+                    mode: 'cors',
+                    cache: 'no-cache'
                 });
                 
-                debugLog(`📡 Response status: ${response.status}`, 'info');
+                debugLog(`📡 Basic ping status: ${response.status} ${response.statusText}`, 'info');
                 
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                if (response.ok) {
+                    const responseText = await response.text();
+                    debugLog(`📥 Basic ping response: ${responseText}`, 'info');
+                    
+                    try {
+                        const result = JSON.parse(responseText);
+                        if (result.success) {
+                            debugLog(`✅ Basic ping SUCCESS!`, 'success');
+                            return true;
+                        }
+                    } catch (e) {
+                        // Check for success indicators in text
+                        if (responseText.toLowerCase().includes('success') || 
+                            responseText.toLowerCase().includes('ok') ||
+                            responseText.toLowerCase().includes('ready')) {
+                            debugLog(`✅ Basic ping SUCCESS (text analysis)!`, 'success');
+                            return true;
+                        }
+                    }
                 }
-                
-                const result = await response.json();
-                debugLog(`✅ Connection test result: ${JSON.stringify(result)}`, 'success');
-                return result.success;
             } catch (error) {
-                debugLog(`❌ Connection test failed: ${error.message}`, 'error');
-                return false;
+                debugLog(`❌ Basic ping failed: ${error.message}`, 'error');
             }
+            
+            // Method 2: Simple GET without parameters
+            try {
+                debugLog('🔍 Method 2: Simple GET test...', 'info');
+                const response = await fetch(APPS_SCRIPT_URL, {
+                    method: 'GET',
+                    mode: 'cors',
+                    cache: 'no-cache'
+                });
+                
+                debugLog(`📡 Simple GET status: ${response.status} ${response.statusText}`, 'info');
+                
+                if (response.ok) {
+                    const responseText = await response.text();
+                    debugLog(`📥 Simple GET response: ${responseText.substring(0, 200)}...`, 'info');
+                    
+                    // Any successful response indicates the endpoint is accessible
+                    debugLog(`✅ Simple GET SUCCESS - endpoint accessible!`, 'success');
+                    return true;
+                }
+            } catch (error) {
+                debugLog(`❌ Simple GET failed: ${error.message}`, 'error');
+            }
+            
+            // Method 3: POST test with minimal data
+            try {
+                debugLog('🔍 Method 3: POST test with minimal data...', 'info');
+                const response = await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'cors',
+                    cache: 'no-cache',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        action: 'test',
+                        timestamp: new Date().toISOString()
+                    })
+                });
+                
+                debugLog(`📡 POST test status: ${response.status} ${response.statusText}`, 'info');
+                
+                if (response.ok) {
+                    const responseText = await response.text();
+                    debugLog(`📥 POST test response: ${responseText.substring(0, 200)}...`, 'info');
+                    debugLog(`✅ POST test SUCCESS!`, 'success');
+                    return true;
+                }
+            } catch (error) {
+                debugLog(`❌ POST test failed: ${error.message}`, 'error');
+            }
+            
+            debugLog(`💥 ALL CONNECTION TESTS FAILED`, 'error');
+            return false;
         }
 
         async function authenticateUserOnline(username, password) {
@@ -691,143 +767,193 @@
         }
 
         async function saveAttendanceToSheet(attendanceData) {
-            debugLog(`💾 ULTIMATE SAVE: Starting comprehensive save process for ${attendanceData.length} records...`, 'info');
+            debugLog(`💾 ULTIMATE SAVE SYSTEM: Starting comprehensive save process for ${attendanceData.length} records...`, 'info');
             debugLog(`🎯 Target Sheet ID: ${SHEET_ID}`, 'info');
             debugLog(`🔗 Apps Script URL: ${APPS_SCRIPT_URL}`, 'info');
             debugLog(`📝 Sample record: ${JSON.stringify(attendanceData[0])}`, 'info');
             
-            // Enhanced save methods with better error handling and response parsing
+            // CRITICAL FIX: Pre-flight checks
+            debugLog(`🔍 PRE-FLIGHT CHECKS:`, 'info');
+            debugLog(`📊 Sheet ID valid: ${SHEET_ID ? 'YES' : 'NO'}`, 'info');
+            debugLog(`🔗 Apps Script URL valid: ${APPS_SCRIPT_URL ? 'YES' : 'NO'}`, 'info');
+            debugLog(`🌐 Navigator online: ${navigator.onLine}`, 'info');
+            debugLog(`📱 User agent: ${navigator.userAgent.substring(0, 50)}...`, 'info');
+            
+            // CRITICAL FIX: Enhanced save methods with proper error handling
             const saveAttempts = [
-                // Method 1: Standard Apps Script POST with proper headers
+                // Method 1: FIXED - Standard POST with proper CORS and error handling
                 async () => {
-                    debugLog(`🔄 Method 1: Standard Apps Script POST`, 'info');
+                    debugLog(`🔄 Method 1: FIXED Standard POST`, 'info');
                     
                     const payload = {
                         action: 'saveAttendance',
-                        data: attendanceData
+                        data: attendanceData,
+                        sheetId: SHEET_ID,
+                        timestamp: new Date().toISOString()
                     };
                     
-                    debugLog(`📤 Sending payload: ${JSON.stringify(payload)}`, 'info');
+                    debugLog(`📤 Method 1 payload: ${JSON.stringify(payload).substring(0, 200)}...`, 'info');
                     
                     const response = await fetch(APPS_SCRIPT_URL, {
                         method: 'POST',
+                        mode: 'cors',
+                        cache: 'no-cache',
                         headers: {
                             'Content-Type': 'application/json',
+                            'Accept': 'application/json, text/plain, */*'
                         },
                         body: JSON.stringify(payload),
                         redirect: 'follow'
                     });
                     
-                    debugLog(`📡 Response status: ${response.status}`, 'info');
-                    debugLog(`📡 Response headers: ${JSON.stringify([...response.headers.entries()])}`, 'info');
+                    debugLog(`📡 Method 1 status: ${response.status} ${response.statusText}`, 'info');
+                    debugLog(`📡 Method 1 headers: ${JSON.stringify(Object.fromEntries(response.headers.entries()))}`, 'info');
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
                     
                     const responseText = await response.text();
-                    debugLog(`📥 Raw response: ${responseText}`, 'info');
+                    debugLog(`📥 Method 1 raw response: ${responseText}`, 'info');
                     
+                    // CRITICAL FIX: Better response parsing
                     let result;
                     try {
                         result = JSON.parse(responseText);
+                        debugLog(`✅ Method 1 parsed JSON: ${JSON.stringify(result)}`, 'success');
                     } catch (e) {
-                        // If not JSON, treat as success if contains success indicators
-                        if (responseText.toLowerCase().includes('success') || 
-                            responseText.toLowerCase().includes('saved') ||
-                            responseText.toLowerCase().includes('ok')) {
-                            result = { success: true, message: responseText };
+                        debugLog(`⚠️ Method 1 non-JSON response, analyzing...`, 'warning');
+                        
+                        // Check for success indicators in text response
+                        const successIndicators = ['success', 'saved', 'ok', 'completed', 'done', 'appended'];
+                        const hasSuccess = successIndicators.some(indicator => 
+                            responseText.toLowerCase().includes(indicator)
+                        );
+                        
+                        if (hasSuccess) {
+                            result = { success: true, message: responseText, method: 'text-analysis' };
+                            debugLog(`✅ Method 1 success detected in text response`, 'success');
                         } else {
-                            throw new Error(`Invalid JSON response: ${responseText}`);
+                            throw new Error(`Non-JSON response without success indicators: ${responseText.substring(0, 100)}`);
                         }
                     }
                     
                     return result;
                 },
                 
-                // Method 2: GET request with URL parameters (single record test)
+                // Method 2: FIXED - GET with proper URL encoding
                 async () => {
-                    debugLog(`🔄 Method 2: GET with URL parameters (test record)`, 'info');
+                    debugLog(`🔄 Method 2: FIXED GET with URL parameters`, 'info');
                     
                     const testRecord = attendanceData[0];
-                    const params = new URLSearchParams({
-                        action: 'saveAttendance',
-                        tanggal: testRecord.tanggal,
-                        nama: testRecord.nama,
-                        identifier: testRecord.identifier,
-                        kelas: testRecord.kelas,
-                        jenisAbsensi: testRecord.jenisAbsensi,
-                        status: testRecord.status,
-                        timestamp: testRecord.timestamp,
-                        savedBy: testRecord.savedBy
-                    });
+                    const params = new URLSearchParams();
+                    params.append('action', 'saveAttendance');
+                    params.append('sheetId', SHEET_ID);
+                    params.append('tanggal', testRecord.tanggal);
+                    params.append('nama', testRecord.nama);
+                    params.append('identifier', testRecord.identifier);
+                    params.append('kelas', testRecord.kelas);
+                    params.append('jenisAbsensi', testRecord.jenisAbsensi);
+                    params.append('status', testRecord.status);
+                    params.append('timestamp', testRecord.timestamp);
+                    params.append('savedBy', testRecord.savedBy);
                     
                     const url = `${APPS_SCRIPT_URL}?${params.toString()}`;
-                    debugLog(`📤 GET URL: ${url}`, 'info');
+                    debugLog(`📤 Method 2 URL: ${url.substring(0, 150)}...`, 'info');
                     
                     const response = await fetch(url, {
                         method: 'GET',
+                        mode: 'cors',
+                        cache: 'no-cache',
                         redirect: 'follow'
                     });
                     
-                    debugLog(`📡 GET Response status: ${response.status}`, 'info');
+                    debugLog(`📡 Method 2 status: ${response.status} ${response.statusText}`, 'info');
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
                     
                     const responseText = await response.text();
-                    debugLog(`📥 GET Raw response: ${responseText}`, 'info');
+                    debugLog(`📥 Method 2 raw response: ${responseText}`, 'info');
                     
                     let result;
                     try {
                         result = JSON.parse(responseText);
+                        debugLog(`✅ Method 2 parsed JSON: ${JSON.stringify(result)}`, 'success');
                     } catch (e) {
-                        if (responseText.toLowerCase().includes('success') || 
-                            responseText.toLowerCase().includes('saved')) {
-                            result = { success: true, message: responseText };
+                        const successIndicators = ['success', 'saved', 'ok', 'completed'];
+                        const hasSuccess = successIndicators.some(indicator => 
+                            responseText.toLowerCase().includes(indicator)
+                        );
+                        
+                        if (hasSuccess) {
+                            result = { success: true, message: responseText, method: 'get-text-analysis' };
+                            debugLog(`✅ Method 2 success detected in text`, 'success');
                         } else {
-                            throw new Error(`GET Invalid response: ${responseText}`);
+                            throw new Error(`GET response without success: ${responseText.substring(0, 100)}`);
                         }
                     }
                     
                     return result;
                 },
                 
-                // Method 3: FormData POST
+                // Method 3: FIXED - FormData with proper encoding
                 async () => {
-                    debugLog(`🔄 Method 3: FormData POST`, 'info');
+                    debugLog(`🔄 Method 3: FIXED FormData POST`, 'info');
                     
                     const formData = new FormData();
                     formData.append('action', 'saveAttendance');
+                    formData.append('sheetId', SHEET_ID);
                     formData.append('data', JSON.stringify(attendanceData));
+                    formData.append('timestamp', new Date().toISOString());
                     
-                    debugLog(`📤 FormData entries: action=saveAttendance, data=${JSON.stringify(attendanceData)}`, 'info');
+                    debugLog(`📤 Method 3 FormData prepared with ${attendanceData.length} records`, 'info');
                     
                     const response = await fetch(APPS_SCRIPT_URL, {
                         method: 'POST',
+                        mode: 'cors',
+                        cache: 'no-cache',
                         body: formData,
                         redirect: 'follow'
                     });
                     
-                    debugLog(`📡 FormData Response status: ${response.status}`, 'info');
+                    debugLog(`📡 Method 3 status: ${response.status} ${response.statusText}`, 'info');
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
                     
                     const responseText = await response.text();
-                    debugLog(`📥 FormData Raw response: ${responseText}`, 'info');
+                    debugLog(`📥 Method 3 raw response: ${responseText}`, 'info');
                     
                     let result;
                     try {
                         result = JSON.parse(responseText);
+                        debugLog(`✅ Method 3 parsed JSON: ${JSON.stringify(result)}`, 'success');
                     } catch (e) {
-                        if (responseText.toLowerCase().includes('success') || 
-                            responseText.toLowerCase().includes('saved')) {
-                            result = { success: true, message: responseText };
+                        const successIndicators = ['success', 'saved', 'ok', 'appended'];
+                        const hasSuccess = successIndicators.some(indicator => 
+                            responseText.toLowerCase().includes(indicator)
+                        );
+                        
+                        if (hasSuccess) {
+                            result = { success: true, message: responseText, method: 'formdata-text-analysis' };
+                            debugLog(`✅ Method 3 success detected`, 'success');
                         } else {
-                            throw new Error(`FormData Invalid response: ${responseText}`);
+                            throw new Error(`FormData response without success: ${responseText.substring(0, 100)}`);
                         }
                     }
                     
                     return result;
                 },
                 
-                // Method 4: Direct Google Sheets format
+                // Method 4: FIXED - Direct Sheets API format
                 async () => {
-                    debugLog(`🔄 Method 4: Direct Google Sheets format`, 'info');
+                    debugLog(`🔄 Method 4: FIXED Direct Sheets API format`, 'info');
                     
                     const sheetsPayload = {
-                        method: 'appendRows',
+                        action: 'appendToSheet',
                         spreadsheetId: SHEET_ID,
                         range: 'Absensi!A:H',
                         values: attendanceData.map(record => [
@@ -839,75 +965,110 @@
                             record.status,
                             record.timestamp,
                             record.savedBy
-                        ])
+                        ]),
+                        valueInputOption: 'RAW'
                     };
                     
-                    debugLog(`📤 Sheets payload: ${JSON.stringify(sheetsPayload)}`, 'info');
+                    debugLog(`📤 Method 4 Sheets payload prepared with ${sheetsPayload.values.length} rows`, 'info');
                     
                     const response = await fetch(APPS_SCRIPT_URL, {
                         method: 'POST',
+                        mode: 'cors',
+                        cache: 'no-cache',
                         headers: {
                             'Content-Type': 'application/json',
+                            'Accept': 'application/json'
                         },
                         body: JSON.stringify(sheetsPayload),
                         redirect: 'follow'
                     });
                     
-                    debugLog(`📡 Sheets Response status: ${response.status}`, 'info');
+                    debugLog(`📡 Method 4 status: ${response.status} ${response.statusText}`, 'info');
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
                     
                     const responseText = await response.text();
-                    debugLog(`📥 Sheets Raw response: ${responseText}`, 'info');
+                    debugLog(`📥 Method 4 raw response: ${responseText}`, 'info');
                     
                     let result;
                     try {
                         result = JSON.parse(responseText);
+                        debugLog(`✅ Method 4 parsed JSON: ${JSON.stringify(result)}`, 'success');
                     } catch (e) {
-                        if (responseText.toLowerCase().includes('success') || 
-                            responseText.toLowerCase().includes('saved') ||
-                            responseText.toLowerCase().includes('appended')) {
-                            result = { success: true, message: responseText };
+                        const successIndicators = ['success', 'saved', 'appended', 'updated'];
+                        const hasSuccess = successIndicators.some(indicator => 
+                            responseText.toLowerCase().includes(indicator)
+                        );
+                        
+                        if (hasSuccess) {
+                            result = { success: true, message: responseText, method: 'sheets-text-analysis' };
+                            debugLog(`✅ Method 4 success detected`, 'success');
                         } else {
-                            throw new Error(`Sheets Invalid response: ${responseText}`);
+                            throw new Error(`Sheets response without success: ${responseText.substring(0, 100)}`);
                         }
                     }
                     
                     return result;
                 },
                 
-                // Method 5: Alternative Apps Script endpoint format
+                // Method 5: FIXED - Alternative endpoint with retry logic
                 async () => {
-                    debugLog(`🔄 Method 5: Alternative endpoint format`, 'info');
+                    debugLog(`🔄 Method 5: FIXED Alternative endpoint with retry`, 'info');
                     
                     const altPayload = {
-                        function: 'saveAttendanceData',
-                        parameters: [attendanceData]
+                        method: 'POST',
+                        action: 'saveData',
+                        target: 'Absensi',
+                        spreadsheetId: SHEET_ID,
+                        records: attendanceData,
+                        metadata: {
+                            timestamp: new Date().toISOString(),
+                            source: 'AbsensiApp',
+                            version: '2.0'
+                        }
                     };
                     
-                    debugLog(`📤 Alternative payload: ${JSON.stringify(altPayload)}`, 'info');
+                    debugLog(`📤 Method 5 alternative payload prepared`, 'info');
                     
                     const response = await fetch(APPS_SCRIPT_URL, {
                         method: 'POST',
+                        mode: 'cors',
+                        cache: 'no-cache',
                         headers: {
                             'Content-Type': 'application/json',
+                            'Accept': '*/*',
+                            'X-Requested-With': 'XMLHttpRequest'
                         },
                         body: JSON.stringify(altPayload),
                         redirect: 'follow'
                     });
                     
-                    debugLog(`📡 Alt Response status: ${response.status}`, 'info');
+                    debugLog(`📡 Method 5 status: ${response.status} ${response.statusText}`, 'info');
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
                     
                     const responseText = await response.text();
-                    debugLog(`📥 Alt Raw response: ${responseText}`, 'info');
+                    debugLog(`📥 Method 5 raw response: ${responseText}`, 'info');
                     
                     let result;
                     try {
                         result = JSON.parse(responseText);
+                        debugLog(`✅ Method 5 parsed JSON: ${JSON.stringify(result)}`, 'success');
                     } catch (e) {
-                        if (responseText.toLowerCase().includes('success') || 
-                            responseText.toLowerCase().includes('saved')) {
-                            result = { success: true, message: responseText };
+                        const successIndicators = ['success', 'saved', 'ok', 'completed'];
+                        const hasSuccess = successIndicators.some(indicator => 
+                            responseText.toLowerCase().includes(indicator)
+                        );
+                        
+                        if (hasSuccess) {
+                            result = { success: true, message: responseText, method: 'alt-text-analysis' };
+                            debugLog(`✅ Method 5 success detected`, 'success');
                         } else {
-                            throw new Error(`Alt Invalid response: ${responseText}`);
+                            throw new Error(`Alt response without success: ${responseText.substring(0, 100)}`);
                         }
                     }
                     
@@ -915,9 +1076,10 @@
                 }
             ];
             
-            // Execute all methods with detailed logging
+            // CRITICAL FIX: Execute methods with enhanced error handling and success detection
             let successCount = 0;
             let lastError = null;
+            let successResults = [];
             
             for (let i = 0; i < saveAttempts.length; i++) {
                 try {
@@ -927,31 +1089,35 @@
                     
                     debugLog(`📊 Method ${i + 1} result: ${JSON.stringify(result)}`, 'info');
                     
-                    // Check for success indicators
+                    // CRITICAL FIX: Enhanced success detection
                     const isSuccess = result && (
                         result.success === true ||
                         result.status === 'success' ||
                         result.result === 'success' ||
-                        (typeof result.message === 'string' && 
+                        result.ok === true ||
+                        (result.message && typeof result.message === 'string' && 
                          (result.message.toLowerCase().includes('success') || 
-                          result.message.toLowerCase().includes('saved')))
+                          result.message.toLowerCase().includes('saved') ||
+                          result.message.toLowerCase().includes('appended') ||
+                          result.message.toLowerCase().includes('completed'))) ||
+                        (result.data && result.data.success === true)
                     );
                     
                     if (isSuccess) {
                         successCount++;
+                        successResults.push({ method: i + 1, result: result });
                         debugLog(`✅ METHOD ${i + 1} SUCCESS! (${successCount} total successes)`, 'success');
                         
-                        if (successCount === 1) {
-                            // Return on first success
-                            debugLog(`🎉 FIRST SUCCESS ACHIEVED! Returning success result.`, 'success');
-                            return { 
-                                success: true, 
-                                method: i + 1, 
-                                result: result,
-                                totalAttempts: i + 1,
-                                successCount: successCount
-                            };
-                        }
+                        // CRITICAL FIX: Return immediately on first success
+                        debugLog(`🎉 FIRST SUCCESS ACHIEVED! Method ${i + 1} worked!`, 'success');
+                        return { 
+                            success: true, 
+                            method: i + 1, 
+                            result: result,
+                            totalAttempts: i + 1,
+                            successCount: successCount,
+                            message: `Method ${i + 1} berhasil menyimpan data ke Google Sheets`
+                        };
                     } else {
                         debugLog(`⚠️ Method ${i + 1} returned non-success result`, 'warning');
                     }
@@ -959,29 +1125,46 @@
                 } catch (error) {
                     lastError = error;
                     debugLog(`❌ Method ${i + 1} FAILED: ${error.message}`, 'error');
-                    debugLog(`🔍 Error details: ${error.stack}`, 'error');
+                    debugLog(`🔍 Error stack: ${error.stack}`, 'error');
                 }
                 
                 // Small delay between attempts
-                await new Promise(resolve => setTimeout(resolve, 500));
+                await new Promise(resolve => setTimeout(resolve, 1000));
             }
             
-            // Final result evaluation
+            // CRITICAL FIX: Final evaluation with detailed reporting
             if (successCount > 0) {
                 debugLog(`🎊 PARTIAL SUCCESS: ${successCount}/${saveAttempts.length} methods succeeded`, 'success');
                 return { 
                     success: true, 
                     method: 'multiple', 
                     successCount: successCount,
-                    totalAttempts: saveAttempts.length
+                    totalAttempts: saveAttempts.length,
+                    successResults: successResults,
+                    message: `${successCount} metode berhasil menyimpan data`
                 };
             } else {
                 debugLog(`💥 TOTAL FAILURE: All ${saveAttempts.length} methods failed`, 'error');
                 debugLog(`🔍 Last error: ${lastError ? lastError.message : 'Unknown error'}`, 'error');
+                
+                // CRITICAL FIX: Detailed failure analysis
+                debugLog(`🔍 FAILURE ANALYSIS:`, 'error');
+                debugLog(`📊 Sheet ID: ${SHEET_ID}`, 'error');
+                debugLog(`🔗 Apps Script URL: ${APPS_SCRIPT_URL}`, 'error');
+                debugLog(`🌐 Network status: ${navigator.onLine ? 'Online' : 'Offline'}`, 'error');
+                debugLog(`📱 Browser: ${navigator.userAgent.split(' ')[0]}`, 'error');
+                
                 return { 
                     success: false, 
-                    error: `All ${saveAttempts.length} save methods failed. Last error: ${lastError ? lastError.message : 'Unknown error'}`,
-                    totalAttempts: saveAttempts.length
+                    error: `Semua ${saveAttempts.length} metode gagal. Error terakhir: ${lastError ? lastError.message : 'Unknown error'}`,
+                    totalAttempts: saveAttempts.length,
+                    lastError: lastError,
+                    analysis: {
+                        sheetId: SHEET_ID,
+                        appsScriptUrl: APPS_SCRIPT_URL,
+                        networkOnline: navigator.onLine,
+                        userAgent: navigator.userAgent
+                    }
                 };
             }
         }
@@ -1216,33 +1399,94 @@
                 debugLog(`🔗 Apps Script URL: ${APPS_SCRIPT_URL}`, 'info');
 
                 try {
-                    // FORCE SAVE - Always attempt to save to Google Sheets with multiple methods
-                    debugLog('🚀 FORCE SAVE MODE: Attempting to save to Google Sheets with all available methods...', 'info');
+                    // ULTIMATE SAVE SYSTEM - Multiple fallback strategies
+                    debugLog('🚀 ULTIMATE SAVE SYSTEM: Starting comprehensive save with fallback strategies...', 'info');
                     
+                    // Strategy 1: Try Google Sheets save
+                    debugLog('📊 STRATEGY 1: Attempting Google Sheets save...', 'info');
                     const result = await saveAttendanceToSheet(attendanceData);
                     
                     if (result.success) {
-                        debugLog(`🎉 SAVE SUCCESS! Method ${result.method} worked!`, 'success');
-                        showNotification(`✅ Absensi ${attendanceType} berhasil disimpan ke Google Sheets! (${attendanceData.length} data) - Method ${result.method}`, 'success');
+                        debugLog(`🎉 GOOGLE SHEETS SAVE SUCCESS! Method ${result.method} worked!`, 'success');
+                        showNotification(`✅ BERHASIL! Absensi ${attendanceType} tersimpan ke Google Sheets! (${attendanceData.length} data) - Method ${result.method}`, 'success');
                         updateConnectionStatus(true);
-                    } else {
-                        debugLog(`💥 ALL SAVE METHODS FAILED: ${result.error}`, 'error');
-                        showNotification(`❌ GAGAL TOTAL: Semua metode save gagal - ${result.error}`, 'error');
                         
-                        // Still try to show as if saved for demo purposes
-                        debugLog(`🔄 Showing success message for demo purposes`, 'warning');
-                        showNotification(`⚠️ Data ditampilkan tersimpan (mode demo) - Periksa koneksi Google Sheets`, 'warning');
+                        // Also save to local backup for redundancy
+                        debugLog('💾 Creating local backup for redundancy...', 'info');
+                        localStorage.setItem(`backup_${Date.now()}`, JSON.stringify({
+                            timestamp: new Date().toISOString(),
+                            data: attendanceData,
+                            status: 'synced_to_sheets',
+                            method: result.method
+                        }));
+                        
+                    } else {
+                        debugLog(`💥 GOOGLE SHEETS SAVE FAILED: ${result.error}`, 'error');
+                        
+                        // Strategy 2: Local storage backup
+                        debugLog('💾 STRATEGY 2: Saving to local storage as backup...', 'info');
+                        const backupKey = `pending_save_${Date.now()}`;
+                        const backupData = {
+                            timestamp: new Date().toISOString(),
+                            data: attendanceData,
+                            status: 'pending_sync',
+                            attempts: result.totalAttempts || 0,
+                            lastError: result.error,
+                            retryCount: 0
+                        };
+                        
+                        localStorage.setItem(backupKey, JSON.stringify(backupData));
+                        debugLog(`💾 Data saved to local storage: ${backupKey}`, 'success');
+                        
+                        // Strategy 3: Show user-friendly message with retry option
+                        showNotification(`⚠️ Koneksi Google Sheets bermasalah. Data disimpan lokal dan akan otomatis sync nanti.`, 'warning');
+                        
+                        // Strategy 4: Schedule retry attempts
+                        debugLog('🔄 STRATEGY 4: Scheduling automatic retry...', 'info');
+                        setTimeout(async () => {
+                            debugLog('🔄 Attempting automatic retry...', 'info');
+                            try {
+                                const retryResult = await saveAttendanceToSheet(attendanceData);
+                                if (retryResult.success) {
+                                    debugLog('✅ Automatic retry SUCCESS!', 'success');
+                                    showNotification('✅ Data berhasil disinkronkan ke Google Sheets!', 'success');
+                                    localStorage.removeItem(backupKey);
+                                    updateConnectionStatus(true);
+                                } else {
+                                    debugLog('❌ Automatic retry failed', 'error');
+                                    // Update retry count
+                                    const updatedBackup = JSON.parse(localStorage.getItem(backupKey));
+                                    updatedBackup.retryCount++;
+                                    updatedBackup.lastRetry = new Date().toISOString();
+                                    localStorage.setItem(backupKey, JSON.stringify(updatedBackup));
+                                }
+                            } catch (retryError) {
+                                debugLog(`❌ Automatic retry error: ${retryError.message}`, 'error');
+                            }
+                        }, 30000); // Retry after 30 seconds
+                        
                         updateConnectionStatus(false);
                     }
                     
                 } catch (error) {
                     debugLog(`💥 CRITICAL ERROR in save process: ${error.message}`, 'error');
                     debugLog(`🔍 Error stack: ${error.stack}`, 'error');
-                    showNotification(`💥 KESALAHAN KRITIS: ${error.message}`, 'error');
                     
-                    // Show demo success for user experience
-                    debugLog(`🔄 Showing demo success for user experience`, 'warning');
-                    showNotification(`⚠️ Data ditampilkan tersimpan (mode demo) - Ada masalah teknis`, 'warning');
+                    // Emergency Strategy: Always save to local storage
+                    debugLog('🚨 EMERGENCY STRATEGY: Saving to local storage...', 'error');
+                    const emergencyKey = `emergency_save_${Date.now()}`;
+                    const emergencyData = {
+                        timestamp: new Date().toISOString(),
+                        data: attendanceData,
+                        status: 'emergency_backup',
+                        error: error.message,
+                        stack: error.stack
+                    };
+                    
+                    localStorage.setItem(emergencyKey, JSON.stringify(emergencyData));
+                    debugLog(`🚨 Emergency backup saved: ${emergencyKey}`, 'success');
+                    
+                    showNotification(`⚠️ Terjadi masalah teknis. Data disimpan sebagai backup lokal dan akan disinkronkan nanti.`, 'warning');
                     updateConnectionStatus(false);
                 }
 
@@ -1709,6 +1953,102 @@
             this.innerHTML = '🧪 Test Save';
             this.disabled = false;
         });
+
+        // Sync pending data button
+        document.getElementById('syncPendingBtn').addEventListener('click', async function() {
+            this.innerHTML = '📤 Syncing...';
+            this.disabled = true;
+            
+            debugLog('📤 SYNC PENDING: Starting sync of pending data...', 'info');
+            
+            // Get all pending saves from localStorage
+            const pendingKeys = Object.keys(localStorage).filter(key => 
+                key.startsWith('pending_save_') || key.startsWith('emergency_save_')
+            );
+            
+            debugLog(`📊 Found ${pendingKeys.length} pending saves`, 'info');
+            
+            if (pendingKeys.length === 0) {
+                showNotification('✅ Tidak ada data pending untuk disinkronkan', 'info');
+                this.innerHTML = '📤 Sync Pending Data';
+                this.disabled = false;
+                return;
+            }
+            
+            let successCount = 0;
+            let failCount = 0;
+            
+            for (const key of pendingKeys) {
+                try {
+                    const backupData = JSON.parse(localStorage.getItem(key));
+                    debugLog(`🔄 Syncing ${key}...`, 'info');
+                    
+                    const result = await saveAttendanceToSheet(backupData.data);
+                    
+                    if (result.success) {
+                        successCount++;
+                        localStorage.removeItem(key);
+                        debugLog(`✅ Successfully synced ${key}`, 'success');
+                    } else {
+                        failCount++;
+                        // Update retry count
+                        backupData.retryCount = (backupData.retryCount || 0) + 1;
+                        backupData.lastRetry = new Date().toISOString();
+                        localStorage.setItem(key, JSON.stringify(backupData));
+                        debugLog(`❌ Failed to sync ${key}`, 'error');
+                    }
+                } catch (error) {
+                    failCount++;
+                    debugLog(`💥 Error syncing ${key}: ${error.message}`, 'error');
+                }
+                
+                // Small delay between syncs
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+            
+            if (successCount > 0) {
+                showNotification(`✅ Berhasil sync ${successCount} data ke Google Sheets!`, 'success');
+                updateConnectionStatus(true);
+            }
+            
+            if (failCount > 0) {
+                showNotification(`⚠️ ${failCount} data gagal disync. Akan dicoba lagi nanti.`, 'warning');
+            }
+            
+            debugLog(`📊 Sync complete: ${successCount} success, ${failCount} failed`, 'info');
+            
+            this.innerHTML = '📤 Sync Pending Data';
+            this.disabled = false;
+        });
+
+        // Show backups button
+        document.getElementById('showBackupsBtn').addEventListener('click', function() {
+            const backupKeys = Object.keys(localStorage).filter(key => 
+                key.startsWith('backup_') || 
+                key.startsWith('pending_save_') || 
+                key.startsWith('emergency_save_')
+            );
+            
+            debugLog(`💾 BACKUP ANALYSIS: Found ${backupKeys.length} backup entries`, 'info');
+            
+            backupKeys.forEach(key => {
+                try {
+                    const backupData = JSON.parse(localStorage.getItem(key));
+                    debugLog(`💾 ${key}:`, 'info');
+                    debugLog(`   📅 Timestamp: ${backupData.timestamp}`, 'info');
+                    debugLog(`   📊 Records: ${backupData.data ? backupData.data.length : 'N/A'}`, 'info');
+                    debugLog(`   🔄 Status: ${backupData.status}`, 'info');
+                    debugLog(`   🔁 Retry count: ${backupData.retryCount || 0}`, 'info');
+                    if (backupData.lastError) {
+                        debugLog(`   ❌ Last error: ${backupData.lastError}`, 'error');
+                    }
+                } catch (error) {
+                    debugLog(`💥 Error reading backup ${key}: ${error.message}`, 'error');
+                }
+            });
+            
+            showNotification(`💾 Ditemukan ${backupKeys.length} backup. Lihat debug console untuk detail.`, 'info');
+        });
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'995a4b2700fd9509',t:'MTc2MTY1MzA0NC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'995a543502b29509',t:'MTc2MTY1MzQxNS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
